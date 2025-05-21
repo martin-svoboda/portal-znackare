@@ -1,8 +1,7 @@
 {
-  "name": "wpify/plugin-skeleton",
-  "description": "Wpify Plugin Skeleton",
+  "name": "martin-svoboda/portal-znackare",
+  "description": "Portal znackare",
   "type": "project",
-  "license": "GPL-2.0-or-later",
   "config": {
 	"platform-check": false,
 	"allow-plugins": {
@@ -26,7 +25,7 @@
     ]
   },
   "require": {
-	"php": "^8.0.0",
+	"php": "^8.1.0",
 	"ext-json": "*"
   },
   "require-dev": {

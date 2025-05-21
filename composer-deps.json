@@ -4,7 +4,7 @@
         "process-timeout": 1200
     },
     "require": {
-        "php": ">=7.3.0||^8.0.0",
+        "php": ">8.1.0",
         "ext-json": "*",
         "php-di/php-di": "^6.3",
         "wpify/asset": "^1.2",
