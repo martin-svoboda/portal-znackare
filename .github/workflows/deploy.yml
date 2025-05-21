@@ -69,11 +69,10 @@ jobs:
           chmod 644 ~/.ssh/known_hosts
         shell: bash
 
-      - name: Replace plugin version in files (only for prod)
-        if: env.IS_TAG == 'true'
+      - name: Replace plugin version in files
         run: |
-          sed -i "s/KCT_VERSION/${{ env.PLUGIN_VERSION }}/g" kct.php || true
-          sed -i "s/KCT_VERSION/${{ env.PLUGIN_VERSION }}/g" themes/kct/style.css || true
+          sed -i "s/PLUGIN_VERSION/${{ env.PLUGIN_VERSION }}/g" portal-znackare.php || true
+          sed -i "s/PLUGIN_VERSION/${{ env.PLUGIN_VERSION }}/g" themes/portal-znackare/style.css || true
 
       - name: Deploy to DEV (main branch)
         if: env.IS_MAIN == 'true'

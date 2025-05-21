@@ -2,7 +2,7 @@
 /*
  * Plugin Name:       Portál značkaře
  * Description:       Plugin s portálem značkaře s napojením na INSYS
- * Version:           1.0.0
+ * Version:           PLUGIN_VERSION
  * Requires PHP:      8.1.0
  * Requires at least: 5.3.0
  * Author:            WPify
