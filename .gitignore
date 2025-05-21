@@ -1,0 +1,10 @@
+/.idea/
+/.ssh/
+/build/
+/deps/
+/dist/
+/node_modules/
+/vendor/
+/.php_cs.cache
+/src.old/
+.DS_Store

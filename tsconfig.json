@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"jsx": "react-jsx",
+		"strict": true,
+		"moduleResolution": "node",
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"noEmit": true,
+		"forceConsistentCasingInFileNames": true,
+		"skipLibCheck": true,
+		"noImplicitAny": false
+	},
+	"include": [
+		"assets",
+		"assets/types",
+		"assets/apps/portal/**/*"
+	],
+	"exclude": ["node_modules", "build"],
+	"types": ["react", "react-dom"]
+}

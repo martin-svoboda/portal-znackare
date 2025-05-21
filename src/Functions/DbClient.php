@@ -1,0 +1,43 @@
+<?php
+
+namespace PortalZnackare\Functions;
+
+class DbClient {
+	public function __construct() {
+	}
+
+	public function conect( $procedure, $args ) {
+		$db = new MssqlConnector();
+
+		if ( $db->hasError() ) {
+			return $db->getError();
+		}
+
+		$result = $db->callProcedure( $procedure, $args );
+		$db->close();
+
+		return $result;
+	}
+
+	public function login_user( string $email, string $hash ) {
+		$result = $this->conect( "trasy.WEB_Login", array(
+			'@Email'      => $email,
+			'@WEBPwdHash' => $hash
+		) );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		if ( isset( $result[0]['INT_ADR'] ) ) {
+			return (int) $result[0]['INT_ADR'];
+		}
+
+		// Špatné přihlašovací údaje
+		return new \WP_Error( 'login_error', 'Chyba přihlášení, zkontrolujte údaje a zkuste to znovu.', array() );
+	}
+
+	public function get_hello_world( $int_adr, $year ) {
+		return $this->conect( "trasy.WEB_Hello_World", array( $int_adr, $year ) );
+	}
+}
