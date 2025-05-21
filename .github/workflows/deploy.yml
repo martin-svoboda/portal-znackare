@@ -1,0 +1,126 @@
+name: Deployment
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    env:
+      SSH_SERVER: 37.235.105.56
+      SSH_USER: root
+      SSH_PORT: 22
+      WP_CLI: wp --allow-root
+      DEV_PATH: /www/hosting/portalznackare.cz/dev/wp-content/plugins/portal-znackare/
+      PROD_PATH: /www/hosting/portalznackare.cz/www/wp-content/plugins/portal-znackare/
+      IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
+      IS_MAIN: ${{ github.ref == 'refs/heads/main' }}
+      PLUGIN_VERSION: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Composer cache
+        uses: actions/cache@v3
+        with:
+          path: /tmp/composer-cache
+          key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+
+      - name: Install dependencies with Composer
+        uses: php-actions/composer@v6
+        with:
+          php_extensions: json
+          version: 2
+          dev: no
+
+      - name: Configure Composer for Scoper
+        run: |
+          composer global config --no-plugins allow-plugins.wpify/scoper true
+          composer global require wpify/scoper
+          sudo chown -R $USER:$USER $GITHUB_WORKSPACE/vendor
+          composer install --no-dev --optimize-autoloader
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Add private SSH key
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval $(ssh-agent -s)
+          ssh-add -D || true
+          ssh-add ~/.ssh/id_rsa
+          ssh-keyscan -t rsa -p $SSH_PORT $SSH_SERVER >> ~/.ssh/known_hosts || true
+          chmod 644 ~/.ssh/known_hosts
+        shell: bash
+
+      - name: Replace plugin version in files (only for prod)
+        if: env.IS_TAG == 'true'
+        run: |
+          sed -i "s/KCT_VERSION/${{ env.PLUGIN_VERSION }}/g" kct.php || true
+          sed -i "s/KCT_VERSION/${{ env.PLUGIN_VERSION }}/g" themes/kct/style.css || true
+
+      - name: Deploy to DEV (main branch)
+        if: env.IS_MAIN == 'true'
+        run: |
+          rsync -av --delete \
+            --exclude="/.*" \
+            --exclude="*.scss" \
+            --exclude="*.sh" \
+            --exclude="node_modules" \
+            --exclude="tests" \
+            . $SSH_USER@$SSH_SERVER:$DEV_PATH
+
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SSH_USER@$SSH_SERVER <<EOF
+          set -euxo pipefail
+          chown -R www-data:www-data $DEV_PATH
+          find $DEV_PATH -type d -exec chmod 755 {} \;
+          find $DEV_PATH -type f -exec chmod 644 {} \;
+          $WP_CLI rewrite flush
+          $WP_CLI cache flush
+          EOF
+
+      - name: Deploy to PROD (tagged release)
+        if: env.IS_TAG == 'true'
+        run: |
+          rsync -av --delete \
+            --exclude="/.*" \
+            --exclude="*.scss" \
+            --exclude="*.sh" \
+            --exclude="node_modules" \
+            --exclude="tests" \
+            . $SSH_USER@$SSH_SERVER:$PROD_PATH
+
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SSH_USER@$SSH_SERVER <<EOF
+          set -euxo pipefail
+          chown -R www-data:www-data $PROD_PATH
+          find $PROD_PATH -type d -exec chmod 755 {} \;
+          find $PROD_PATH -type f -exec chmod 644 {} \;
+          $WP_CLI rewrite flush
+          $WP_CLI cache flush
+          EOF
+
+      - name: Create GitHub Release (only for tag)
+        if: env.IS_TAG == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
