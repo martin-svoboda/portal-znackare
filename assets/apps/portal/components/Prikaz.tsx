@@ -12,7 +12,7 @@ import {
 	Table,
 	Divider, Paper, Flex,
 } from "@mantine/core";
-import {IconCashBanknotePlus, IconCrown, IconEdit} from "@tabler/icons-react";
+import {IconCashBanknotePlus, IconChecklist, IconCrown, IconEdit, IconHome2} from "@tabler/icons-react";
 import {useParams} from "react-router-dom";
 import {apiRequest} from "../utils/apiClient";
 import {notifications} from "@mantine/notifications";
@@ -25,6 +25,7 @@ import {
 } from 'mantine-react-table';
 import {MRT_Localization_CS} from "mantine-react-table/locales/cs";
 import {Menu, Select} from "@mantine/core/lib";
+import {BreadcrumbsNav} from "./BreadcrumbsNav";
 
 // Utility pro zarovnání a zpracování kilometrů
 const formatKm = (km?: string | null) =>
@@ -32,6 +33,12 @@ const formatKm = (km?: string | null) =>
 		minimumFractionDigits: 0,
 		maximumFractionDigits: 3
 	}) : "";
+
+// Drobežková navigace
+const breadcrumb = [
+	{title: "Nástěnka", href: "/nastenka"},
+	{title: "Příkazy", href: "/prikazy"},
+];
 
 // Komponenta jednoho člena týmu s případnou korunou
 const Member = ({name, isLeader}: { name: string; isLeader: boolean }) =>
@@ -136,13 +143,13 @@ const Prikaz = () => {
 				size: 80,
 				enableGrouping: true,
 			},
-			{accessorKey: "Radek1", header: "Míst / směr", size: 100},
+			{accessorKey: "Radek1", header: "Místo / směr", size: 100},
 			{accessorKey: "Stav_TIM", header: "Stav", size: 40},
 			{
 				accessorKey: "BARVA",
 				header: "Barva",
 				size: 80,
-				Cell: ({ cell }) => {
+				Cell: ({cell}) => {
 					const colorMap: Record<string, string> = {
 						"červená": "red",
 						"modrá": "blue",
@@ -243,6 +250,7 @@ const Prikaz = () => {
 			<Helmet>
 				<title>Příkaz {head?.Cislo_ZP || id} | {window.kct_portal?.bloginfo?.name}</title>
 			</Helmet>
+			<BreadcrumbsNav items={breadcrumb}/>
 			<Title mb="xl" order={2}>
 				Značkařský příkaz {head?.Cislo_ZP || id}
 			</Title>

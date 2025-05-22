@@ -35,11 +35,17 @@ import {
 	IconSignLeft,
 	IconCrown
 } from "@tabler/icons-react";
+import {BreadcrumbsNav} from "./BreadcrumbsNav";
 
 const getAvailableYears = () => {
 	const currentYear = new Date().getFullYear();
 	return Array.from({length: 5}, (_, i) => `${currentYear - i}`);
 };
+
+// Drobežková navigace
+const breadcrumb = [
+	{title: "Nástěnka", href: "/nastenka"},
+];
 
 const ProtectedContent = () => {
 	const {getIntAdr} = useAuth();
@@ -182,6 +188,7 @@ const ProtectedContent = () => {
 
 	return (
 		<Container size="lg" px={0} my="md">
+			<BreadcrumbsNav items={breadcrumb}/>
 			<Title mb="md" order={2}>Vaše příkazy</Title>
 			<Card shadow="sm" padding="sm">
 				<MantineReactTable table={table}/>
