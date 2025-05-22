@@ -57,6 +57,15 @@ class DbClient {
 	}
 
 	public function get_prikaz( $id ) {
-		return $this->conect( "trasy.ZP_Detail", array( $id ), true );
+		$result = $this->conect( "trasy.ZP_Detail", array( $id ), true );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return array(
+			'head' => $result[0][0] ?? [],
+			'data' => $result[1] ?? [],
+		);
 	}
 }
