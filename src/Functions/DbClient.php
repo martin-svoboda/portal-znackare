@@ -10,7 +10,7 @@ class DbClient {
 				print_r( $this->get_prikazy( 4133, 2025 ) );
 			}
 			if ( 'prikaz' === $_GET['test_api'] ) {
-				print_r( $this->get_prikaz( $_GET['id'] ) );
+				print_r( $this->get_prikaz( 4133, $_GET['id'] ) );
 			}
 			die();
 		}
@@ -56,16 +56,37 @@ class DbClient {
 		return $this->conect( "trasy.PRIKAZY_SEZNAM", array( $int_adr, $year ) );
 	}
 
-	public function get_prikaz( $id ) {
+	public function get_prikaz( $int_adr, $id ) {
 		$result = $this->conect( "trasy.ZP_Detail", array( $id ), true );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		return array(
-			'head' => $result[0][0] ?? [],
+		$head = $result[0][0] ?? [];
+
+		if ( empty( $head ) ) {
+			return new \WP_Error( 'missing_data', 'U tohoto příkazu se nenačetla žádná data.', [] );
+		}
+
+		// Hledání hodnoty INT_ADR v hlavičce
+		$found = array_filter( array_keys( $head ), fn( $key ) => str_starts_with( $key, 'INT_ADR' ) );
+		$match = false;
+
+		foreach ( $found as $key ) {
+			if ( (int) $head[ $key ] === (int) $int_adr ) {
+				$match = true;
+				break;
+			}
+		}
+
+		if ( ! $match ) {
+			return new \WP_Error( 'permission_denied', 'Tento příkaz vám nebyl přidělen a nemáte oprávnění k jeho nahlížení.', [] );
+		}
+
+		return [
+			'head' => $head,
 			'data' => $result[1] ?? [],
-		);
+		];
 	}
 }
