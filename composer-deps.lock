@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5dd6740e9561f9ebfc007de9b61553a8",
+    "content-hash": "6675a4a7c52aa2ec23ecbfd7d8cf1f95",
     "packages": [
         {
             "name": "laravel/serializable-closure",
@@ -563,16 +563,16 @@
         },
         {
             "name": "wpify/model",
-            "version": "4.1.23",
+            "version": "4.1.24",
             "source": {
                 "type": "git",
                 "url": "https://github.com/wpify/model.git",
-                "reference": "f7295fcf85f86ead9be01dd2fe1dcc4a5788e9c6"
+                "reference": "ebcac0038014dd0a8d7af5b31e3ee1efa542e9ec"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/wpify/model/zipball/f7295fcf85f86ead9be01dd2fe1dcc4a5788e9c6",
-                "reference": "f7295fcf85f86ead9be01dd2fe1dcc4a5788e9c6",
+                "url": "https://api.github.com/repos/wpify/model/zipball/ebcac0038014dd0a8d7af5b31e3ee1efa542e9ec",
+                "reference": "ebcac0038014dd0a8d7af5b31e3ee1efa542e9ec",
                 "shasum": ""
             },
             "require": {
@@ -597,9 +597,9 @@
             "description": "WPify Model",
             "support": {
                 "issues": "https://github.com/wpify/model/issues",
-                "source": "https://github.com/wpify/model/tree/4.1.23"
+                "source": "https://github.com/wpify/model/tree/4.1.24"
             },
-            "time": "2025-04-10T19:34:52+00:00"
+            "time": "2025-05-21T09:30:57+00:00"
         },
         {
             "name": "wpify/plugin-utils",
@@ -716,44 +716,6 @@
             "time": "2024-07-26T07:36:21+00:00"
         },
         {
-            "name": "wpify/taxonomy",
-            "version": "1.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/wpify/taxonomy.git",
-                "reference": "34dec15f7039db6ac988da2b8a530c339ad92090"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/wpify/taxonomy/zipball/34dec15f7039db6ac988da2b8a530c339ad92090",
-                "reference": "34dec15f7039db6ac988da2b8a530c339ad92090",
-                "shasum": ""
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Wpify\\Taxonomy\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "GPL-2.0-or-later"
-            ],
-            "authors": [
-                {
-                    "name": "WPify",
-                    "email": "info@wpify.io"
-                }
-            ],
-            "description": "WPify Taxonomy",
-            "support": {
-                "issues": "https://github.com/wpify/taxonomy/issues",
-                "source": "https://github.com/wpify/taxonomy/tree/1.0.0"
-            },
-            "abandoned": true,
-            "time": "2021-09-08T12:44:19+00:00"
-        },
-        {
             "name": "wpify/template",
             "version": "1.1.0",
             "source": {
@@ -799,7 +761,7 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=7.3.0||^8.0.0",
+        "php": ">8.1.0",
         "ext-json": "*"
     },
     "platform-dev": [],

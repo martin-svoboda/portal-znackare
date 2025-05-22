@@ -26,7 +26,8 @@
   },
   "require": {
 	"php": "^8.1.0",
-	"ext-json": "*"
+	"ext-json": "*",
+    "vlucas/phpdotenv": "*"
   },
   "require-dev": {
 	"wpify/plugin-composer-scripts": "^1.2",

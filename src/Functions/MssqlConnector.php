@@ -2,15 +2,27 @@
 
 namespace PortalZnackare\Functions;
 
+use Dotenv\Dotenv;
+
 class MssqlConnector {
 	private $conn;
 	private $last_error;
 
 	public function __construct() {
-		$server   = "sql8.aspone.cz";
-		$database = "db6266";
-		$username = "db6266";
-		$password = "Dw3?f(H50qkS";
+		$env_root = dirname( ABSPATH );
+		if ( ! isset( $_ENV['DB_HOST'] ) && file_exists( $env_root . '/.env' ) ) {
+			$dotenv = Dotenv::createImmutable( $env_root );
+			$dotenv->safeLoad();
+		}
+
+		$server   = $_ENV['DB_HOST'] ?? 'localhost';
+		$database = $_ENV['DB_NAME'] ?? '';
+		$username = $_ENV['DB_USER'] ?? '';
+		$password = $_ENV['DB_PASS'] ?? '';
+
+		var_dump($env_root . '/.env');
+		var_dump($server);
+		die();
 
 		try {
 			$dsn        = "sqlsrv:server=$server;Database=$database";
