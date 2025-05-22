@@ -16,14 +16,19 @@ class DbClient {
 		}
 	}
 
-	public function conect( $procedure, $args ) {
+	public function conect( $procedure, $args, $multiple = false ) {
 		$db = new MssqlConnector();
 
 		if ( $db->hasError() ) {
 			return $db->getError();
 		}
 
-		$result = $db->callProcedure( $procedure, $args );
+		if ( $multiple ) {
+			$result = $db->callProcedureMultiple( $procedure, $args );
+		} else {
+			$result = $db->callProcedure( $procedure, $args );
+		}
+
 		$db->close();
 
 		return $result;
@@ -52,6 +57,6 @@ class DbClient {
 	}
 
 	public function get_prikaz( $id ) {
-		return $this->conect( "trasy.ZP_Detail", array( $id ) );
+		return $this->conect( "trasy.ZP_Detail", array( $id ), true );
 	}
 }

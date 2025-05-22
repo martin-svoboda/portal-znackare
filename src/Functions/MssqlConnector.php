@@ -4,6 +4,7 @@ namespace PortalZnackare\Functions;
 
 class MssqlConnector {
 	private $conn;
+	private $last_error;
 
 	public function __construct() {
 		$server   = "sql8.aspone.cz";
@@ -16,7 +17,7 @@ class MssqlConnector {
 			$this->conn = new \PDO( $dsn, $username, $password );
 			$this->conn->setAttribute( \PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION );
 		} catch ( \PDOException $e ) {
-			$this->conn = null;
+			$this->conn       = null;
 			$this->last_error = $e->getMessage();
 		}
 	}
@@ -36,19 +37,17 @@ class MssqlConnector {
 			$is_named = $this->is_assoc( $params );
 
 			if ( $is_named ) {
-				// Např. @Email = ?, @WEBPwdHash = ?
 				$placeholders = implode( ', ', array_map(
 					fn( $key ) => "$key = ?",
 					array_keys( $params )
 				) );
-				$args = array_values( $params );
+				$args         = array_values( $params );
 			} else {
-				// Např. ?, ?
 				$placeholders = implode( ', ', array_fill( 0, count( $params ), '?' ) );
-				$args = $params;
+				$args         = $params;
 			}
 
-			$sql = sprintf( "EXEC %s %s", $procedure, $placeholders );
+			$sql  = sprintf( "EXEC %s %s", $procedure, $placeholders );
 			$stmt = $this->conn->prepare( $sql );
 			$stmt->execute( $args );
 
@@ -56,7 +55,41 @@ class MssqlConnector {
 
 		} catch ( \PDOException $e ) {
 			error_log( 'SQL Procedure error: ' . $e->getMessage() );
+
 			return new \WP_Error( 'sql_error', 'Chyba volání procedury', array( 'exception' => $e->getMessage() ) );
+		}
+	}
+
+	public function callProcedureMultiple( $procedure, $params = [] ) {
+		try {
+			$is_named = $this->is_assoc( $params );
+
+			if ( $is_named ) {
+				$placeholders = implode( ', ', array_map(
+					fn( $key ) => "$key = ?",
+					array_keys( $params )
+				) );
+				$args         = array_values( $params );
+			} else {
+				$placeholders = implode( ', ', array_fill( 0, count( $params ), '?' ) );
+				$args         = $params;
+			}
+
+			$sql  = sprintf( "EXEC %s %s", $procedure, $placeholders );
+			$stmt = $this->conn->prepare( $sql );
+			$stmt->execute( $args );
+
+			$results = [];
+			do {
+				$results[] = $stmt->fetchAll( \PDO::FETCH_ASSOC );
+			} while ( $stmt->nextRowset() );
+
+			return $results;
+
+		} catch ( \PDOException $e ) {
+			error_log( 'SQL Procedure (multi) error: ' . $e->getMessage() );
+
+			return new \WP_Error( 'sql_error', 'Chyba volání procedury (více sad)', array( 'exception' => $e->getMessage() ) );
 		}
 	}
 
@@ -68,12 +101,16 @@ class MssqlConnector {
 			return $stmt->fetchAll( \PDO::FETCH_ASSOC );
 		} catch ( \PDOException $e ) {
 			error_log( 'SQL error: ' . $e->getMessage() );
+
 			return new \WP_Error( 'sql_error', 'Chyba SQL dotazu', array( 'detail' => $e->getMessage() ) );
 		}
 	}
 
 	private function is_assoc( array $arr ) {
-		if ( array() === $arr ) return false;
+		if ( array() === $arr ) {
+			return false;
+		}
+
 		return array_keys( $arr ) !== range( 0, count( $arr ) - 1 );
 	}
 
