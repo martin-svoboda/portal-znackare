@@ -77,7 +77,10 @@ class PortalApi extends WP_REST_Controller {
 				'callback'            => array( $this, 'get_prikaz' ),
 				'permission_callback' => '__return_true',
 				'args'                => array(
-					'id' => array(
+					'int_adr' => array(
+						'required' => true,
+					),
+					'id'      => array(
 						'required' => true,
 					),
 				),
@@ -173,8 +176,9 @@ class PortalApi extends WP_REST_Controller {
 	 * @return WP_error|WP_REST_Response
 	 */
 	public function get_prikaz( $request ) {
-		$id  = $request['id'];
-		$response = $this->client->get_prikaz( $id );
+		$int_adr  = $request['int_adr'];
+		$id       = $request['id'];
+		$response = $this->client->get_prikaz( $int_adr, $id );
 
 		return rest_ensure_response( $response );
 	}
