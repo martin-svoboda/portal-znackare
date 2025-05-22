@@ -7,10 +7,10 @@ class DbClient {
 		if ( isset( $_GET['test_api'] ) ) {
 			echo '<pre>';
 			if ( 'prikazy' === $_GET['test_api'] ) {
-				var_dump( $this->get_prikazy( 4133, 2025 ) );
+				print_r( $this->get_prikazy( 4133, 2025 ) );
 			}
 			if ( 'prikaz' === $_GET['test_api'] ) {
-				var_dump( $this->get_prikaz( $_GET['id'] ) );
+				print_r( $this->get_prikaz( $_GET['id'] ) );
 			}
 			die();
 		}
