@@ -3,6 +3,8 @@
 namespace PortalZnackare\Functions;
 
 class DbClient {
+	private $test_data = null;
+
 	public function __construct() {
 		if ( isset( $_GET['test_api'] ) ) {
 			echo '<pre>';
@@ -13,6 +15,10 @@ class DbClient {
 				print_r( $this->get_prikaz( 4133, $_GET['id'] ) );
 			}
 			die();
+		}
+
+		if ( current_user_can( 'administrator' ) && isset( $_GET['download_test_data'] ) ) {
+			$this->download_test_data();
 		}
 	}
 
@@ -53,10 +59,20 @@ class DbClient {
 	}
 
 	public function get_prikazy( $int_adr, $year ) {
+		if ( $this->is_local() ) {
+			$data = $this->get_test_data();
+			return $data['prikazy'][ $year ] ?? [];
+		}
+
 		return $this->conect( "trasy.PRIKAZY_SEZNAM", array( $int_adr, $year ) );
 	}
 
 	public function get_prikaz( $int_adr, $id ) {
+		if ( $this->is_local() ) {
+			$data = $this->get_test_data();
+			return $data['detaily'][ $id ] ?? new \WP_Error( 'missing_data', 'Chybí detail pro ID ' . $id );
+		}
+
 		$result = $this->conect( "trasy.ZP_Detail", array( $id ), true );
 
 		if ( is_wp_error( $result ) ) {
@@ -88,5 +104,48 @@ class DbClient {
 			'head' => $head,
 			'data' => $result[1] ?? [],
 		];
+	}
+
+	private function download_test_data() {
+		$prikazy = array(
+			2024 => $this->get_prikazy( 4133, 2024 ),
+			2025 => $this->get_prikazy( 4133, 2025 ),
+		);
+		$detaily = array();
+
+		foreach ( $prikazy as $prikazy_rok ) {
+			foreach ( $prikazy_rok as $prikaz ) {
+				$id = $prikaz['ID_Znackarske_prikazy'] ?? null;
+				if ( $id ) {
+					$detaily[ $id ] = $this->get_prikaz( 4133, $id );
+				}
+			}
+		}
+
+		// save to file
+		file_put_contents(
+			__DIR__ . '/testdata.json',
+			json_encode( [ 'prikazy' => $prikazy, 'detaily' => $detaily ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE )
+		);
+	}
+
+	private function get_test_data() {
+		if ( $this->test_data === null ) {
+			$file = __DIR__ . '/testdata.json';
+			if ( file_exists( $file ) ) {
+				$this->test_data = json_decode( file_get_contents( $file ), true );
+			} else {
+				$this->test_data = [];
+			}
+		}
+		return $this->test_data;
+	}
+
+	private function is_local() {
+		if ( 'https://portalznackare.ddev.site' === get_site_url() ) {
+			return true;
+		}
+
+		return false;
 	}
 }
