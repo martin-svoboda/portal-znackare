@@ -9,20 +9,16 @@ class MssqlConnector {
 	private $last_error;
 
 	public function __construct() {
-		$env_root = dirname( ABSPATH );
-		if ( ! isset( $_ENV['DB_HOST'] ) && file_exists( $env_root . '/.env' ) ) {
+		$env_root = dirname( realpath( $_SERVER['SCRIPT_FILENAME'] ) );
+		if ( ! isset( $_ENV['INSYS_DB_HOST'] ) && file_exists( $env_root . '/.env' ) ) {
 			$dotenv = Dotenv::createImmutable( $env_root );
 			$dotenv->safeLoad();
 		}
 
-		$server   = $_ENV['DB_HOST'] ?? 'localhost';
-		$database = $_ENV['DB_NAME'] ?? '';
-		$username = $_ENV['DB_USER'] ?? '';
-		$password = $_ENV['DB_PASS'] ?? '';
-
-		var_dump($env_root . '/.env');
-		var_dump($server);
-		die();
+		$server   = $_ENV['INSYS_DB_HOST'] ?? 'localhost';
+		$database = $_ENV['INSYS_DB_NAME'] ?? '';
+		$username = $_ENV['INSYS_DB_USER'] ?? '';
+		$password = $_ENV['INSYS_DB_PASS'] ?? '';
 
 		try {
 			$dsn        = "sqlsrv:server=$server;Database=$database";
