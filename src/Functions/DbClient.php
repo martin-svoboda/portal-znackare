@@ -122,12 +122,27 @@ class DbClient {
 			}
 		}
 
-		// save to file
-		file_put_contents(
-			__DIR__ . '/testdata.json',
-			json_encode( [ 'prikazy' => $prikazy, 'detaily' => $detaily ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE )
-		);
+		$data = json_encode( [ 'prikazy' => $prikazy, 'detaily' => $detaily ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+
+		if ( $data === false ) {
+			die( '❌ Chyba při převodu na JSON: ' . json_last_error_msg() );
+		}
+
+		$file_path = __DIR__ . '/testdata.json';
+		$written = file_put_contents( $file_path, $data );
+
+		if ( $written === false ) {
+			die( '❌ Nepodařilo se uložit soubor: ' . $file_path );
+		}
+
+		echo '<pre>';
+		echo "✅ Data byla úspěšně uložena do: {$file_path}\n";
+		echo "Velikost: {$written} bajtů\n\n";
+		print_r( json_decode( $data, true ) );
+		echo '</pre>';
+		die();
 	}
+
 
 	private function get_test_data() {
 		if ( $this->test_data === null ) {
