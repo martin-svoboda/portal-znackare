@@ -36,7 +36,18 @@ Projekt je založen na WordPressu (plugin) a Reactu (SPA frontend), běží komp
    npm run build     # Produkční build
    composer cs       # Kontrola coding standards (phpcs)
    ```
-4. **Použití:**
+4. **Autorizace externích služeb:**
+
+	plugin pro správné fungování vyžaduje přístupové udáje externích služeb. 
+	* Vytvořte `.env` soubor s potřebnými údaji v rootu instalace WP. např.:
+   ```dotenv
+	  INSYS_DB_HOST=sql.example.cz
+	  INSYS_DB_NAME=example
+	  INSYS_DB_USER=example
+	  INSYS_DB_PASS=example
+   ```
+
+5. **Použití:**
 
 	* Plugin se instaluje do WordPressu (doporučeno pomocí [Bedrock](https://roots.io/bedrock/) nebo podobného prostředí).
 	* Aktivuj plugin přes administraci WP.
