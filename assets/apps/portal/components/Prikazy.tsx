@@ -9,7 +9,7 @@ import {
 	Box,
 	Select,
 	Menu,
-	Loader,
+	Loader, ThemeIcon,
 } from '@mantine/core';
 import {
 	IconEdit,
@@ -27,6 +27,14 @@ import {apiRequest} from '../utils/apiClient';
 import {notifications} from '@mantine/notifications';
 import RequireLogin from './RequireLogin';
 import {Helmet} from "react-helmet-async";
+import {useNavigate} from "react-router-dom";
+import {
+	IconBrush,
+	IconTool,
+	IconHammer,
+	IconSignLeft,
+	IconCrown
+} from "@tabler/icons-react";
 
 const getAvailableYears = () => {
 	const currentYear = new Date().getFullYear();
@@ -40,6 +48,7 @@ const ProtectedContent = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [year, setYear] = useState<string>('');
+	const navigate = useNavigate();
 
 	const fetchData = async (selectedYear?: string) => {
 		setLoading(true);
@@ -51,12 +60,6 @@ const ProtectedContent = () => {
 			setData(result);
 		} catch (err: any) {
 			setError(err.message);
-			notifications.show({
-				color: 'red',
-				title: 'Chyba při načítání příkazů',
-				message: err.message,
-				autoClose: 5000,
-			});
 		} finally {
 			setLoading(false);
 		}
@@ -71,13 +74,47 @@ const ProtectedContent = () => {
 		if (year) fetchData(year);
 	}, [year]);
 
+	const druhZPIkona: Record<string, any> = {
+		O: IconBrush,      // Obnova – štětec
+		N: IconTool,       // Nová – nářadí
+		S: IconSignLeft,   // Směrovky/rozcestníky – směrovka
+	};
+
 	const columns = useMemo<MRT_ColumnDef<any>[]>(
 		() => [
 			{accessorKey: 'Cislo_ZP', header: 'Číslo ZP', size: 100},
+			{
+				accessorKey: 'Druh_ZP_Naz',
+				header: 'Druh ZP',
+				size: 120,
+				filterVariant: 'select',
+				Cell: ({row}) => {
+					const kod = row.original.Druh_ZP;
+					const IconComponent = druhZPIkona[kod] || IconHammer; // Default: kladivo
+					return (
+						<Group gap="xs" align="center" wrap="nowrap">
+							<ThemeIcon variant="light">
+								<IconComponent aria-label={row.original.Druh_ZP_Naz}/>
+							</ThemeIcon>
+							<span>{row.original.Druh_ZP_Naz}</span>
+						</Group>
+					);
+				},
+			},
 			{accessorKey: 'Popis_ZP', header: 'Popis', size: 300},
 			{accessorKey: 'Stav_ZP_Naz', header: 'Stav', size: 100, filterVariant: 'select'},
 			{accessorKey: 'Znackar', header: 'Značkař', size: 100, filterVariant: 'autocomplete'},
-			{accessorKey: 'Trida_OTZ', header: 'Třída', size: 50, filterVariant: 'select'},
+			{
+				accessorKey: 'Je_Vedouci',
+				header: 'Ved.',
+				size: 40,
+				Cell: ({cell}) =>
+					cell.getValue() === '1' || cell.getValue() === 1
+						? <ThemeIcon variant="light" color="yellow"><IconCrown title="Vedoucí skupiny" aria-label="Vedoucí"/></ThemeIcon>
+						: null,
+				enableColumnFilter: false,
+				meta: {align: 'center'}
+			},
 			{accessorKey: 'Vyuctovani', header: 'Vyúčtování', size: 100, filterVariant: 'select'},
 		],
 		[]
@@ -90,7 +127,7 @@ const ProtectedContent = () => {
 		enableColumnFilters: true,
 		enablePagination: data.length > 20,
 		enableSorting: false,
-		enableRowActions: true,
+		//enableRowActions: true,
 		enableDensityToggle: false,
 		enableFullScreenToggle: false,
 		state: {isLoading: loading},
@@ -105,12 +142,10 @@ const ProtectedContent = () => {
 			shadow: 'none',
 			withBorder: false
 		},
-		renderDetailPanel: ({row}) => (
-			<Box>
-				<Text size="sm" fw={500}>Detail příkazu</Text>
-				<Text size="sm" c="dimmed">{row.original.Popis_ZP}</Text>
-			</Box>
-		),
+		mantineTableBodyRowProps: ({row}) => ({
+			style: {cursor: "pointer"},
+			onClick: () => navigate(`/prikaz/${row.original.ID_Znackarske_Prikazy}`),
+		}),
 		renderTopToolbarCustomActions: () => (
 			<Group align="center" gap="xs">
 				<Text size="xs" fw={500}>Rok</Text>

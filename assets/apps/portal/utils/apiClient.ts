@@ -1,5 +1,6 @@
 import apiFetch from '@wordpress/api-fetch';
 import { addQueryArgs } from '@wordpress/url';
+import {notifications} from "@mantine/notifications";
 
 export async function apiRequest<T = any>(
 	endpoint: string,
@@ -25,6 +26,12 @@ export async function apiRequest<T = any>(
 		return await apiFetch({ path, ...options });
 	} catch (error: any) {
 		console.error(`API error at ${endpoint}:`, error);
+		notifications.show({
+			color: 'red',
+			title: 'Chyba při získávání dat',
+			message: error.message,
+			autoClose: 5000,
+		});
 		throw error;
 	}
 }
