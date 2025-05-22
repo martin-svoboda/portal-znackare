@@ -14,7 +14,7 @@ class Frontend {
 		private PluginUtils $utils,
 		private AssetFactory $asset_factory,
 		private DbClient $db_client,
-		private PortalApi $portal_api,
+		private ApiManager $api_manager,
 	) {
 		$this->setup();
 	}
@@ -89,7 +89,7 @@ class Frontend {
 				'variables' => array(
 					'kct_portal' => array(
 						'nonce'          => wp_create_nonce( 'wp_rest' ),
-						'rest_namespace' => $this->portal_api->namespace,
+						'rest_namespace' => $this->api_manager::PATH,
 						'is_admin'       => current_user_can( 'administrator' ),
 						'menu'           => $this->get_menu_data(),
 						'bloginfo'       => array(
