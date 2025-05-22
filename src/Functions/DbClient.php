@@ -115,7 +115,7 @@ class DbClient {
 
 		foreach ( $prikazy as $prikazy_rok ) {
 			foreach ( $prikazy_rok as $prikaz ) {
-				$id = $prikaz['ID_Znackarske_prikazy'] ?? null;
+				$id = $prikaz['ID_Znackarske_Prikazy'] ?? null;
 				if ( $id ) {
 					$detaily[ $id ] = $this->get_prikaz( 4133, $id );
 				}
