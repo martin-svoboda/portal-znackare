@@ -71,6 +71,21 @@ class PortalApi extends WP_REST_Controller {
 
 		register_rest_route(
 			$this->namespace,
+			'/prikaz',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_prikaz' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'id' => array(
+						'required' => true,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/post',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -145,7 +160,21 @@ class PortalApi extends WP_REST_Controller {
 	public function get_prikazy( $request ) {
 		$int_adr  = $request['int_adr'];
 		$year     = $request['year'];
-		$response = $this->client->get_hello_world( $int_adr, $year );
+		$response = $this->client->get_prikazy( $int_adr, $year );
+
+		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * Získáme detail příkazu z INSYZ
+	 *
+	 * @param WP_REST_Request $request request data
+	 *
+	 * @return WP_error|WP_REST_Response
+	 */
+	public function get_prikaz( $request ) {
+		$id  = $request['id'];
+		$response = $this->client->get_prikaz( $id );
 
 		return rest_ensure_response( $response );
 	}

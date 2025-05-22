@@ -4,6 +4,16 @@ namespace PortalZnackare\Functions;
 
 class DbClient {
 	public function __construct() {
+		if ( isset( $_GET['test_api'] ) ) {
+			echo '<pre>';
+			if ( 'prikazy' === $_GET['test_api'] ) {
+				var_dump( $this->get_prikazy( 4133, 2025 ) );
+			}
+			if ( 'prikaz' === $_GET['test_api'] ) {
+				var_dump( $this->get_prikaz( $_GET['id'] ) );
+			}
+			die();
+		}
 	}
 
 	public function conect( $procedure, $args ) {
@@ -37,7 +47,11 @@ class DbClient {
 		return new \WP_Error( 'login_error', 'Chyba přihlášení, zkontrolujte údaje a zkuste to znovu.', array() );
 	}
 
-	public function get_hello_world( $int_adr, $year ) {
-		return $this->conect( "trasy.WEB_Hello_World", array( $int_adr, $year ) );
+	public function get_prikazy( $int_adr, $year ) {
+		return $this->conect( "trasy.PRIKAZY_SEZNAM", array( $int_adr, $year ) );
+	}
+
+	public function get_prikaz( $id ) {
+		return $this->conect( "trasy.ZP_Detail", array( $id ) );
 	}
 }
