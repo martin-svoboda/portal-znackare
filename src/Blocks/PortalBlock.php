@@ -44,7 +44,7 @@ class PortalBlock {
 				'variables' => array(
 					'kct_portal' => array(
 						'nonce'    => wp_create_nonce( 'wp_rest' ),
-						'rest_url' => rest_url( $this->insyz_api->namespace ),
+						'rest_url' => '',
 						'is_admin' => current_user_can( 'administrator' ),
 					),
 				),
