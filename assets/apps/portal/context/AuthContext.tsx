@@ -7,18 +7,22 @@ import React, {
 } from 'react';
 import { apiRequest } from '../utils/apiClient';
 
-declare global {
-	interface Window {
-		kct_portal?: any;
-	}
-}
+type User = {
+	INT_ADR: string;
+	Jmeno: string;
+	Prijmeni: string;
+	// ...doplň další potřebná pole
+	[K: string]: any; // zbytek volitelně
+};
 
 type AuthContextType = {
 	loggedIn: boolean;
 	intAdr: string | null;
+	user: User | null;
 	getIntAdr: () => string | null;
 	login: (username: string, password: string) => Promise<boolean>;
 	logout: () => void;
+	refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -29,6 +33,7 @@ type AuthProviderProps = {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
 	const [intAdr, setIntAdr] = useState<string | null>(null);
+	const [user, setUser] = useState<User | null>(null);
 
 	// Při prvním načtení zkusit obnovit intAdr z localStorage
 	useEffect(() => {
@@ -40,6 +45,34 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		}
 	}, []);
 
+	// Jakmile máme intAdr, pokusíme se natáhnout uživatele (poprvé i po loginu)
+	useEffect(() => {
+		if (intAdr) {
+			refreshUser();
+		} else {
+			setUser(null);
+		}
+		// eslint-disable-next-line
+	}, [intAdr]);
+
+	const refreshUser = async () => {
+		if (!intAdr) return;
+		try {
+			const result = await apiRequest('/user', 'GET', { int_adr: intAdr });
+			// Pokud API vrací pole, vezmeme první záznam
+			if (Array.isArray(result) && result.length > 0) {
+				setUser(result[0]);
+			} else if (result && typeof result === 'object') {
+				setUser(result);
+			} else {
+				setUser(null);
+			}
+		} catch (err: any) {
+			console.error('Failed to fetch user:', err);
+			setUser(null);
+		}
+	};
+
 	const login = async (email: string, password: string) => {
 		try {
 			const data = await apiRequest<{ int_adr: string }>('/login', 'POST', {
@@ -50,6 +83,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 			if (data.int_adr) {
 				localStorage.setItem('int_adr', data.int_adr);
 				setIntAdr(data.int_adr);
+				// refreshUser proběhne přes useEffect
 				return true;
 			}
 
@@ -63,6 +97,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 	const logout = () => {
 		localStorage.removeItem('int_adr');
 		setIntAdr(null);
+		setUser(null);
 	};
 
 	const getIntAdr = () => intAdr;
@@ -70,7 +105,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 	const loggedIn = !!intAdr;
 
 	return (
-		<AuthContext.Provider value={{ loggedIn, intAdr, getIntAdr, login, logout }}>
+		<AuthContext.Provider value={{ loggedIn, intAdr, user, getIntAdr, login, logout, refreshUser }}>
 			{children}
 		</AuthContext.Provider>
 	);

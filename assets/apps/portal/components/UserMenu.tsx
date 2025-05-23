@@ -6,51 +6,53 @@ import {
 	Avatar, Menu, Text, useMantineTheme
 } from "@mantine/core";
 import {useNavigate} from "react-router-dom";
-import {IconChecklist, IconHome2, IconLogout} from "@tabler/icons-react";
+import {IconChecklist, IconHome2, IconLogout, IconUser} from "@tabler/icons-react";
 
 
 const staticUserNavItems = [
 	{path: "/nastenka", label: "Moje nástěnka", icon: IconHome2},
 	{path: "/prikazy", label: "Příkazy", icon: IconChecklist},
+	{path: "/profil", label: "Profil", icon: IconUser},
 ];
 const UserMenu = ({onSuccess}) => {
-	const {logout, loggedIn} = useAuth();
+	const {logout, loggedIn, user} = useAuth();
 	const navigate = useNavigate();
 	const theme = useMantineTheme();
 
 	const isActive = (path: string) => location.pathname === path;
+
+	const name = `${user?.Jmeno} ${user?.Prijmeni}`;
 
 	return (
 		<Menu position="bottom-end" trigger="hover" openDelay={50} closeDelay={400}>
 			<Menu.Target>
 				<Group gap="xs">
 					<Avatar
-						src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-8.png"
-						radius="xl"
-						alt="Profilový obrázek"
+						color="blue"
+						key={name}
+						name={name}
 					/>
 					<Flex style={{flex: 1}} visibleFrom="md" direction="column">
 						<Text size="sm" fw={500} component="strong">
-							Jméno Příjmení
+							{user?.Jmeno} {user?.Prijmeni}
 						</Text>
 						<Text c="dimmed" size="xs">
-							značkař
+							{user?.Prukaz_znackare}
 						</Text>
 					</Flex>
 				</Group>
 			</Menu.Target>
 
 			<Menu.Dropdown>
-				<Flex style={{flex: 1}} hiddenFrom="md" direction="column">
+				<Flex style={{flex: 1}} hiddenFrom="md" direction="column" p="xs">
 					<Text size="sm" fw={500} component="strong">
-						Jméno Příjmení
+						{user?.Jmeno} {user?.Prijmeni}
 					</Text>
 					<Text c="dimmed" size="xs">
-						značkař
+						{user?.Prukaz_znackare}
 					</Text>
 				</Flex>
 				<Menu.Divider hiddenFrom="md"/>
-				<Menu.Label>Application</Menu.Label>
 				{staticUserNavItems.map((item) => (
 					<Menu.Item
 						key={item.path}

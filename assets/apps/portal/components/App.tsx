@@ -30,6 +30,7 @@ import {MetodikaProvider} from "../context/MetodikaContext";
 import UserMenu from "./UserMenu";
 import {MetodikaTermsProvider} from "../context/MetodikaTermsContext";
 import Prikaz from "./Prikaz";
+import Profil from "./Profil";
 
 const staticNavItems = [
 	{path: "/", label: "Úvod", icon: IconHome2},
@@ -155,6 +156,7 @@ const App: React.FC = () => {
 				<Routes>
 					<Route path="/" element={<PostPage/>}/>
 					<Route path="/nastenka" element={<Dashboard/>}/>
+					<Route path="/profil" element={<Profil/>}/>
 					<Route path="/prikazy" element={<Prikazy/>}/>
 					<Route path="/prikaz/:id" element={<Prikaz/>}/>
 					<Route path="/metodika/*" element={
