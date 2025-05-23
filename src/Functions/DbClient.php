@@ -8,6 +8,9 @@ class DbClient {
 	public function __construct() {
 		if ( isset( $_GET['test_api'] ) ) {
 			echo '<pre>';
+			if ( 'user' === $_GET['test_api'] ) {
+				print_r( $this->get_user( 4133 ) );
+			}
 			if ( 'prikazy' === $_GET['test_api'] ) {
 				print_r( $this->get_prikazy( 4133, 2025 ) );
 			}
@@ -58,9 +61,20 @@ class DbClient {
 		return new \WP_Error( 'login_error', 'Chyba přihlášení, zkontrolujte údaje a zkuste to znovu.', array() );
 	}
 
+	public function get_user( $int_adr ) {
+		if ( $this->is_local() ) {
+			$data = $this->get_test_data();
+
+			return $data['user'] ?? [];
+		}
+
+		return $this->conect( "trasy.ZNACKAR_DETAIL", array( $int_adr ) );
+	}
+
 	public function get_prikazy( $int_adr, $year ) {
 		if ( $this->is_local() ) {
 			$data = $this->get_test_data();
+
 			return $data['prikazy'][ $year ] ?? [];
 		}
 
@@ -70,6 +84,7 @@ class DbClient {
 	public function get_prikaz( $int_adr, $id ) {
 		if ( $this->is_local() ) {
 			$data = $this->get_test_data();
+
 			return $data['detaily'][ $id ] ?? new \WP_Error( 'missing_data', 'Chybí detail pro ID ' . $id );
 		}
 
@@ -107,6 +122,7 @@ class DbClient {
 	}
 
 	private function download_test_data() {
+		$user    = $this->get_user( 4133 );
 		$prikazy = array(
 			2024 => $this->get_prikazy( 4133, 2024 ),
 			2025 => $this->get_prikazy( 4133, 2025 ),
@@ -122,14 +138,18 @@ class DbClient {
 			}
 		}
 
-		$data = json_encode( [ 'prikazy' => $prikazy, 'detaily' => $detaily ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+		$data = json_encode( [
+			'user'    => $user,
+			'prikazy' => $prikazy,
+			'detaily' => $detaily
+		], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
 
 		if ( $data === false ) {
 			die( '❌ Chyba při převodu na JSON: ' . json_last_error_msg() );
 		}
 
 		$file_path = __DIR__ . '/testdata.json';
-		$written = file_put_contents( $file_path, $data );
+		$written   = file_put_contents( $file_path, $data );
 
 		if ( $written === false ) {
 			die( '❌ Nepodařilo se uložit soubor: ' . $file_path );
@@ -153,6 +173,7 @@ class DbClient {
 				$this->test_data = [];
 			}
 		}
+
 		return $this->test_data;
 	}
 

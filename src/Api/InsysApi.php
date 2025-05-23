@@ -47,6 +47,21 @@ class InsysApi extends WP_REST_Controller {
 
 		register_rest_route(
 			ApiManager::PATH,
+			'/user',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_user' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'int_adr' => array(
+						'required' => true,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			ApiManager::PATH,
 			'/prikazy',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -111,6 +126,20 @@ class InsysApi extends WP_REST_Controller {
 		}
 
 		return rest_ensure_response( [ 'int_adr' => $response ] );
+	}
+
+	/**
+	 * Získáme informace o uživateli z INSYZ
+	 *
+	 * @param WP_REST_Request $request request data
+	 *
+	 * @return WP_error|WP_REST_Response
+	 */
+	public function get_user( $request ) {
+		$int_adr  = $request['int_adr'];
+		$response = $this->client->get_user( $int_adr );
+
+		return rest_ensure_response( $response );
 	}
 
 	/**
