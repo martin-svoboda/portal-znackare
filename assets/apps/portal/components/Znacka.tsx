@@ -14,8 +14,13 @@ export const Znacka = ({
 						   move = "PTZ",
 						   size = 100,
 					   }: ZnackaProps) => {
-	const upozorneni = barvaUpozornovaci(move);
-	const vedouci = barvaVedouci(color);
+	let upozorneni = barvaUpozornovaci(move);
+	let vedouci = barvaVedouci(color);
+
+	if (shape === "NS") {
+		upozorneni = barvaUpozornovaci("PTZ");
+		vedouci = barvaVedouci("zelená");
+	}
 
 	switch (shape) {
 		case "pasova":
@@ -123,17 +128,17 @@ export const Znacka = ({
 					{/* Levý spodní trojúhelník (upozorňovací barva) */}
 					<polygon
 						points="0,100 0,0 32.5,0 0,32.5"
-						fill={barvaUpozornovaci["PTZ"]}
+						fill={upozorneni}
 					/>
 					{/* Pravý horní trojúhelník (upozorňovací barva) */}
 					<polygon
 						points="100,0 100,100 67.5,100 100,67.5"
-						fill={barvaUpozornovaci["PTZ"]}
+						fill={upozorneni}
 					/>
 					{/* Diagonální pruh (vedoucí barva, šířka 30, s mezerou 5px) */}
 					<polygon
 						points="5,0 32.5,0 100,67.5 100,95 95,100 67.5,100 0,32.5 0,5"
-						fill={barvaVedouci["zelená"]}
+						fill={vedouci}
 					/>
 				</svg>
 			);

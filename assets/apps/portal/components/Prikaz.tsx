@@ -28,7 +28,7 @@ import {MRT_Localization_CS} from "mantine-react-table/locales/cs";
 import {BreadcrumbsNav} from "./BreadcrumbsNav";
 import NahledTim from "./NahledTim";
 import {getBadgeColor} from "../utils/badgeColor";
-import {barvaVedouci} from "../utils/colors";
+import {barvaMantine, barvaVedouci} from "../utils/colors";
 import {Znacka} from "./Znacka";
 import MapaTrasy from "./MapaTrasy";
 
@@ -81,7 +81,7 @@ const PrikazHead = ({head}: { head: any }) => (
 				<Badge color="blue" mt={4}>{head.Stav_ZP_Naz}</Badge>
 			</Stack>
 			<Stack gap="sm">
-				<Znacka size={60}/>
+				<Znacka shape="pasova" size={60} move="PTZ" color="červená"/>
 				<Text size="sm">Km: <b>--</b></Text>
 			</Stack>
 			<Stack gap="sm">
@@ -227,6 +227,9 @@ const Prikaz = () => {
 				<Text size="sm" c="dimmed" hiddenFrom="sm">Stav: {row.original.Stav_TIM}</Text>
 				<Stack gap="sm">
 					{row.original.items?.map((item: any, i: number) => {
+						console.log(item.Barva); // co to opravdu vrací?
+						console.log("Badge color: ", barvaMantine(item.Barva)); // co to opravdu vrací?
+
 						return (
 							<>
 								<Divider/>
@@ -247,7 +250,7 @@ const Prikaz = () => {
 										</Box>
 										<Box>
 											{item.Barva && (
-												<Badge color={barvaVedouci(item.BARVA)}>{item.Barva}</Badge>
+												<Badge autoContrast color={barvaVedouci(item.Barva)}>{item.Barva}</Badge>
 											)}
 										</Box>
 										<Box>
