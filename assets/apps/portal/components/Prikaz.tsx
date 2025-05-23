@@ -30,6 +30,7 @@ import NahledTim from "./NahledTim";
 import {getBadgeColor} from "../utils/badgeColor";
 import {barvaVedouci} from "../utils/colors";
 import {Znacka} from "./Znacka";
+import MapaTrasy from "./MapaTrasy";
 
 function groupByEvCiTIM(rows: any[]) {
 	const groups: Record<string, any> = {};
@@ -149,6 +150,26 @@ const Prikaz = () => {
 		[tableData]
 	);
 
+	const mapPoints = useMemo(
+			() =>
+				groupedData
+					.filter(d => !!d.GPS_Sirka && !!d.GPS_Delka)
+					.map(d => ({
+						lat: Number(d.GPS_Sirka),   // GPS_Sirka = latitude
+						lon: Number(d.GPS_Delka),   // GPS_Delka = longitude
+						content: (
+							<p>
+								<strong>{d.Naz_TIM}</strong>
+								<br/>
+								Ev. Č.: {d.EvCi_TIM}
+							</p>
+						),
+					})),
+			[groupedData]
+		)
+	;
+
+
 	const columns = useMemo<MRT_ColumnDef<any>[]>(
 		() => [
 			{
@@ -210,7 +231,7 @@ const Prikaz = () => {
 							<>
 								<Divider/>
 								<Flex w="100%" key={i} gap="md" align="center" wrap="wrap">
-									<NahledTim item={item} />
+									<NahledTim item={item}/>
 									<Flex
 										gap="md"
 										justify="center"
@@ -259,8 +280,17 @@ const Prikaz = () => {
 					<PrikazHead head={head}/>
 				)}
 			</Card>
-			<Card shadow="sm" padding="sm">
+			<Card shadow="sm" padding="sm" mb="xl">
+				<Title order={4} mb="sm">Informační místa na trase</Title>
 				<MantineReactTable table={table}/>
+			</Card>
+			<Card shadow="sm" mb="xl">
+				<Title order={4} mb="sm">Mapa trasy</Title>
+				{loading ? (
+					<Loader/>
+				) : (
+					<MapaTrasy body={mapPoints}/>
+				)}
 			</Card>
 		</Container>
 	);

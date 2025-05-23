@@ -19,6 +19,7 @@
 		"cover 97%"
 	],
 	"devDependencies": {
+		"@types/leaflet": "^1.9.18",
 		"@wordpress/api-fetch": "^7.17.0",
 		"@wordpress/scripts": "^30.16.0",
 		"node-sass-glob-importer": "^5.3.3",
@@ -35,8 +36,10 @@
 		"@tanstack/react-query": "^5.76.0",
 		"clsx": "^2.1.1",
 		"dayjs": "^1.11.13",
+		"leaflet": "^1.9.4",
 		"mantine-react-table": "^2.0.0-beta.9",
 		"react-helmet-async": "^2.0.5",
+		"react-leaflet": "^4.2.1",
 		"react-router-dom": "^6.30.0"
 	}
 }

@@ -113,7 +113,7 @@ jobs:
           chown -R www-data:www-data $PROD_PATH
           find $PROD_PATH -type d -exec chmod 755 {} \;
           find $PROD_PATH -type f -exec chmod 644 {} \;
-          cd WP_ROOT_PROD
+          cd $WP_ROOT_PROD
           $WP_CLI rewrite flush
           $WP_CLI cache flush
           EOF
