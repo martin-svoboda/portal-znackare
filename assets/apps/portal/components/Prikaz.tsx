@@ -26,33 +26,10 @@ import {
 } from 'mantine-react-table';
 import {MRT_Localization_CS} from "mantine-react-table/locales/cs";
 import {BreadcrumbsNav} from "./BreadcrumbsNav";
-
-// Utils
-const formatKm = (km?: string | null) =>
-	km && !isNaN(Number(km)) ? parseFloat(km).toLocaleString("cs-CZ", {
-		minimumFractionDigits: 0,
-		maximumFractionDigits: 3
-	}) : "";
-
-function getBadgeColor(val: string) {
-	const v = val.toLowerCase().trim();
-	return v === "červená" ? "red"
-		: v === "modrá" ? "blue"
-			: v === "zelená" ? "green"
-				: v === "žlutá" ? "yellow"
-					: v === "bílá" ? "gray"
-						: "gray";
-}
-
-function getItemLines(item: any) {
-	return [1, 2, 3]
-		.map(i => {
-			const text = item[`Radek${i}`]?.trim();
-			const km = item[`KM${i}`] && Number(item[`KM${i}`]) > 0 ? formatKm(item[`KM${i}`]) : null;
-			return text ? {text, km} : null;
-		})
-		.filter(Boolean);
-}
+import NahledTim from "./NahledTim";
+import {getBadgeColor} from "../utils/badgeColor";
+import {barvaVedouci} from "../utils/colors";
+import {Znacka} from "./Znacka";
 
 function groupByEvCiTIM(rows: any[]) {
 	const groups: Record<string, any> = {};
@@ -101,6 +78,10 @@ const PrikazHead = ({head}: { head: any }) => (
 				<Text fw={700} fz="xl">{head.Cislo_ZP}</Text>
 				<Text c="dimmed" fz="sm">{head.Druh_ZP_Naz}</Text>
 				<Badge color="blue" mt={4}>{head.Stav_ZP_Naz}</Badge>
+			</Stack>
+			<Stack gap="sm">
+				<Znacka size={60}/>
+				<Text size="sm">Km: <b>--</b></Text>
 			</Stack>
 			<Stack gap="sm">
 				<Text size="sm">Kraj: <b>{head.KKZ}</b></Text>
@@ -152,11 +133,6 @@ const Prikaz = () => {
 				setData(result.data || []);
 			})
 			.catch(err => {
-				notifications.show({
-					color: "red",
-					title: "Chyba při načítání příkazu",
-					message: err.message,
-				});
 				setHead(null);
 				setData([]);
 			})
@@ -230,51 +206,27 @@ const Prikaz = () => {
 				<Text size="sm" c="dimmed" hiddenFrom="sm">Stav: {row.original.Stav_TIM}</Text>
 				<Stack gap="sm">
 					{row.original.items?.map((item: any, i: number) => {
-						const lines = getItemLines(item);
 						return (
 							<>
 								<Divider/>
 								<Flex w="100%" key={i} gap="md" align="center" wrap="wrap">
-									<Paper shadow="xs" p={"xs"} style={{width: 'fit-content'}} withBorder bg="orange.0">
-										<Flex
-											miw="200"
-											mih="60"
-											gap={0}
-											justify="center"
-											align="center"
-											direction="column"
-										>
-											{lines.length > 0 ? (
-												lines.map((line, idx) => (
-													<Group key={idx}
-														   justify={line.km ? "space-between" : "center"}
-														   w="100%">
-														<Text fw={700} size="sm" c="dark"
-															  style={{fontStretch: 'condensed'}}>{line?.text}</Text>
-														{line.km && <Text size="sm" c="dark">{line.km} km</Text>}
-													</Group>
-												))
-											) : (
-												<Text size="sm" c="dimmed" ta="center">Žádný popis</Text>
-											)}
-										</Flex>
-									</Paper>
+									<NahledTim item={item} />
 									<Flex
 										gap="md"
 										justify="center"
 										wrap="wrap"
 									>
 										<Box>
-											<Text fw={700}>{item.Druh_Predmetu}</Text>
+											<Text fw={700}>{item.Druh_Predmetu_Naz}</Text>
 											{item.Smerovani && (
 												<Text size="xs" c="dimmed">
-													{item.Smerovani === 'P' ? 'Pravé' : item.Smerovani === 'L' ? 'Levé' : item.Smerovani}
+													{item.Smerovani === 'P' ? 'Pravá' : item.Smerovani === 'L' ? 'Levá' : item.Smerovani}
 												</Text>
 											)}
 										</Box>
 										<Box>
-											{item.BARVA && (
-												<Badge color={getBadgeColor(item.BARVA)}>{item.BARVA}</Badge>
+											{item.Barva && (
+												<Badge color={barvaVedouci(item.BARVA)}>{item.Barva}</Badge>
 											)}
 										</Box>
 										<Box>
