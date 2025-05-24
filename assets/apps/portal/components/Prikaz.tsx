@@ -27,7 +27,6 @@ import {
 import {MRT_Localization_CS} from "mantine-react-table/locales/cs";
 import {BreadcrumbsNav} from "./BreadcrumbsNav";
 import NahledTim from "./NahledTim";
-import {getBadgeColor} from "../utils/badgeColor";
 import {barvaMantine, barvaVedouci} from "../utils/colors";
 import {Znacka} from "./Znacka";
 import MapaTrasy from "./MapaTrasy";
@@ -161,7 +160,7 @@ const Prikaz = () => {
 							<p>
 								<strong>{d.Naz_TIM}</strong>
 								<br/>
-								Ev. Č.: {d.EvCi_TIM}
+								{d.EvCi_TIM}
 							</p>
 						),
 					})),
@@ -169,6 +168,7 @@ const Prikaz = () => {
 		)
 	;
 
+	const mapRoute = "O" === head?.Druh_ZP;
 
 	const columns = useMemo<MRT_ColumnDef<any>[]>(
 		() => [
@@ -284,15 +284,14 @@ const Prikaz = () => {
 				)}
 			</Card>
 			<Card shadow="sm" padding="sm" mb="xl">
-				<Title order={4} mb="sm">Informační místa na trase</Title>
+				<Title order={3} mb="sm">Informační místa na trase</Title>
 				<MantineReactTable table={table}/>
 			</Card>
 			<Card shadow="sm" mb="xl">
-				<Title order={4} mb="sm">Mapa trasy</Title>
 				{loading ? (
 					<Loader/>
 				) : (
-					<MapaTrasy body={mapPoints}/>
+					<MapaTrasy body={mapPoints} route={mapRoute}/>
 				)}
 			</Card>
 		</Container>

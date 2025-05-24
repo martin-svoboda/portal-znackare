@@ -4,7 +4,7 @@ import {
 } from '@mantine/core';
 import {useNavigate, useParams} from 'react-router-dom';
 import {Helmet} from 'react-helmet-async';
-import {addHeadingIdsToHtml} from '../utils/addHeadingIdsToHtml';
+import {addHeadingIdsToHtml} from '../utils/textHlepers';
 import {TableOfContents} from '@mantine/core';
 import {useMetodika} from '../context/MetodikaContext';
 import {useMetodikaTerms} from '../context/MetodikaTermsContext';

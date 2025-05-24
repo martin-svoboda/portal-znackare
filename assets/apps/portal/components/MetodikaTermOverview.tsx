@@ -5,7 +5,7 @@ import {
 import {useMetodika} from '../context/MetodikaContext';
 import {useNavigate} from 'react-router-dom';
 import {useMediaQuery} from '@mantine/hooks';
-import {getHeadingsFromHtml} from '../utils/getHeadingsFromHtml';
+import {getHeadingsFromHtml} from '../utils/textHlepers';
 import {Helmet} from "react-helmet-async";
 import {useMetodikaTerms} from "../context/MetodikaTermsContext";
 import MetodikaContainer from "./MetodikaContainer";
