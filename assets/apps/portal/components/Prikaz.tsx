@@ -71,7 +71,7 @@ const Member = ({name, isLeader}: { name: string; isLeader: boolean }) =>
 	);
 
 // Hlavicka
-const PrikazHead = ({head}: { head: any }) => (
+const PrikazHead = ({head, soubeh}: { head: any, soubeh?: any[] }) => (
 	<Stack gap="md">
 		<Group gap="xl" align="start" wrap="wrap">
 			<Stack gap="xs">
@@ -113,6 +113,21 @@ const PrikazHead = ({head}: { head: any }) => (
 				</Stack>
 			</>
 		)}
+		{soubeh && soubeh.length > 1 && (
+			<>
+				<Divider my="xs"/>
+				<Stack gap="xs">
+					<Text fw={700} fz="md">
+						Možný souběh tras
+					</Text>
+					<Group gap="xs" wrap="wrap">
+						{soubeh.map((row, i) => (
+							<Znacka size={30} move={row.Druh_Presunu} color={row.Barva}/>
+						))}
+					</Group>
+				</Stack>
+			</>
+		)}
 	</Stack>
 );
 
@@ -148,6 +163,20 @@ const Prikaz = () => {
 		() => groupByEvCiTIM(tableData),
 		[tableData]
 	);
+
+	const soubeh = useMemo(() => {
+		if (head?.Druh_ZP !== "O" || !Array.isArray(data)) return [];
+		const set = new Set();
+		return data
+			.filter(item => item.Barva && item.Druh_Presunu)
+			.map(item => ({Barva: item.Barva, Druh_Presunu: item.Druh_Presunu}))
+			.filter((item) => {
+				const key = `${item.Barva}|${item.Druh_Presunu}`;
+				if (set.has(key)) return false;
+				set.add(key);
+				return true;
+			});
+	}, [data]);
 
 	const mapPoints = useMemo(
 			() =>
@@ -250,7 +279,8 @@ const Prikaz = () => {
 										</Box>
 										<Box>
 											{item.Barva && (
-												<Badge autoContrast color={barvaVedouci(item.Barva)}>{item.Barva}</Badge>
+												<Badge autoContrast
+													   color={barvaVedouci(item.Barva)}>{item.Barva}</Badge>
 											)}
 										</Box>
 										<Box>
@@ -280,7 +310,7 @@ const Prikaz = () => {
 				{loading ? (
 					<Loader/>
 				) : (
-					<PrikazHead head={head}/>
+					<PrikazHead head={head} soubeh={soubeh}/>
 				)}
 			</Card>
 			<Card shadow="sm" padding="sm" mb="xl">
