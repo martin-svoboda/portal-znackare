@@ -1,5 +1,5 @@
 import React from "react";
-import {barvaUpozornovaci, barvaVedouci} from "../utils/colors";
+import {barvaDlePresunu, barvaDleJmena} from "../utils/colors";
 
 type ZnackaProps = {
 	color?: string; // Vedoucí barva (např. modrá)
@@ -14,25 +14,23 @@ export const Znacka = ({
 						   move = "PTZ",
 						   size = 100,
 					   }: ZnackaProps) => {
-	let upozorneni = barvaUpozornovaci(move);
-	let vedouci = barvaVedouci(color);
+	let upozorneni = barvaDlePresunu(move);
+	let vedouci = barvaDleJmena(color);
 
 	if (shape === "NS") {
-		upozorneni = barvaUpozornovaci("PTZ");
-		vedouci = barvaVedouci("zelená");
+		upozorneni = barvaDlePresunu("PTZ");
+		vedouci = barvaDleJmena("zelená");
 	}
 
 	switch (shape) {
 		case "pasova":
 			// Tři pásy: horní a dolní upozorňovací, střední vedoucí, mezery 5 px
 			return (
-				<svg width={size} height={size} viewBox="0 0 100 100">
-					{/* Horní pruh */}
-					<rect x={0} y={0} width={100} height={30} fill={upozorneni}/>
-					{/* Prostřední pruh */}
-					<rect x={0} y={35} width={100} height={30} fill={vedouci}/>
-					{/* Dolní pruh */}
-					<rect x={0} y={70} width={100} height={30} fill={upozorneni}/>
+				<svg width={size} height={size} viewBox="0 0 120 120">
+					<rect x="0" y="0" width="120" height="120" fill={barvaDleJmena("khaki")}/>
+					<rect x="10" y="10" width="100" height="30" fill={upozorneni}/>
+					<rect x="10" y="45" width="100" height="30" fill={vedouci}/>
+					<rect x="10" y="80" width="100" height="30" fill={upozorneni}/>
 				</svg>
 			);
 		case "hrad":

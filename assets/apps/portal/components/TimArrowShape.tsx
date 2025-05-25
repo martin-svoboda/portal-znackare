@@ -22,35 +22,32 @@ export const TimArrowShape = ({
 			);
 		case "hrad":
 			return (
-				<svg width={30} height={30} viewBox="0 0 30 30">
-					<polygon
-						points="0,0 20,0 20,10 30,10 30,30 0,30"
-						fill={color}
-					/>
+				<svg width={40} height={26} viewBox="0 0 40 26">
+					<path
+						d="M20,13.21l0,-10.262l-10.263,-0l0,20.525l20.526,-0l-0,-10.263l-10.263,0Z"
+						fill={color}/>
 				</svg>
 			);
 		case "studanka":
 			return (
-				<svg width={30} height={15} viewBox="0 0 30 15">
-					<path d="M0,0 A15,15 0 0,0 30,0" fill={color}/>
+				<svg width={40} height={26} viewBox="0 0 40 26">
+					<path
+						d="M32.118,12.877l0,0.005c0,6.448 -5.101,11.683 -11.385,11.683c-6.283,0 -11.384,-5.235 -11.384,-11.683l-0,-0.005l22.769,-0Z"
+						fill={color}/>
 				</svg>
 			);
 		case "vrchol":
 			return (
-				<svg width={30} height={26} viewBox="0 0 30 26">
-					<polygon
-						points="15,0 30,26 0,26"
-						fill={color}
-					/>
+				<svg width={40} height={26} viewBox="0 0 40 26">
+					<path d="M20.467,4.305l10.858,19.906l-21.716,0l10.858,-19.906Z" fill={color}/>
 				</svg>
 			);
 		case "zajimavost":
 			return (
-				<svg width={100} height={60} viewBox="0 0 100 60">
-					{/* Tělo */}
-					<rect x={0} y={30} width={100} height={30} fill={color}/>
-					{/* Čtverec nahoře uprostřed */}
-					<rect x={35} y={0} width={30} height={30} fill={color}/>
+				<svg width={40} height={26} viewBox="0 0 40 26">
+					<path
+						d="M24.646,13.215l0,-8.892l-8.892,0l0,8.892l-10.373,-0l-0,8.892l29.639,-0l-0,-8.892l-10.374,-0Z"
+						fill={color}/>
 				</svg>
 			);
 		default:

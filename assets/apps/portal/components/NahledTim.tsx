@@ -2,7 +2,7 @@ import React, {useRef, useLayoutEffect, useState} from "react";
 import {Paper, Flex, Group, Text, Box} from "@mantine/core";
 import {formatKm} from "../utils/formatKm";
 import {TimArrowShape} from "./TimArrowShape"; // Importuj svoji komponentu
-import {barvaVedouci} from "../utils/colors";
+import {barvaDleJmena} from "../utils/colors";
 
 function getItemLines(item: any) {
 	return [1, 2, 3]
@@ -29,23 +29,27 @@ const NahledTim = ({item}: { item: any }) => {
 		}
 	}, [lines]);
 
-	const vedouciBarva = item.Barva ? barvaVedouci(item.Barva) : 'transparent';
+	const vedouciBarva = item.Barva ? barvaDleJmena(item.Barva) : 'transparent';
 
 	const barvaPodkladu = (val: string | undefined) => {
 		if (!val) return "orange.0";
 		const v = val.trim().toLowerCase();
 		switch (v) {
-			case "PTZ": return "orange.0";
-			case "LTZ": return "orange.6";
-			case "CTZ": return "yellow.4";
-			default: return "orange.0";
+			case "PTZ":
+				return "orange.0";
+			case "LTZ":
+				return "orange.6";
+			case "CTZ":
+				return "yellow.4";
+			default:
+				return "orange.0";
 		}
 	}
 
 	let itemStyle: { padding: string; clipPath?: string } = {
 		padding: "5px"
 	}
-	let shapeStyle: { } = {
+	let shapeStyle: {} = {
 		display: "none",
 	}
 	if (showArrow && direction === "L") {
@@ -80,13 +84,13 @@ const NahledTim = ({item}: { item: any }) => {
 				pos="relative"
 			>
 				{showArrow && direction && <Box
-				pos="absolute"
-				top="50%"
-				w="40px"
-				h="25px"
-				style={shapeStyle}
+					pos="absolute"
+					top="50%"
+					w="40px"
+					h="25px"
+					style={shapeStyle}
 				>
-					<TimArrowShape color={vedouciBarva} shape="pasova" />
+					<TimArrowShape color={vedouciBarva} shape="pasova"/>
 				</Box>}
 				<Flex
 					w="200"
@@ -104,7 +108,11 @@ const NahledTim = ({item}: { item: any }) => {
 								w="100%"
 								gap={0}
 							>
-								<Text ta="center" fw={700} size="sm" c="dark" style={{fontStretch: 'condensed'}}>
+								<Text ta="center" fw={700} size="sm" c="dark"
+									  style={{
+										  fontStretch: (line?.text?.length > 20 ? 'ultra-condensed' : 'condensed'),
+									  }}
+								>
 									{line?.text}
 								</Text>
 								{line.km && <Text size="sm" c="dark">{line.km} km</Text>}
