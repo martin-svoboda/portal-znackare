@@ -19,19 +19,19 @@ import {
 import {Routes, Route, useNavigate, useLocation,} from "react-router-dom";
 import React, {useMemo} from "react";
 
-import {useAuth} from "../context/AuthContext";
-import Dashboard from "./Dashboard";
-import Prikazy from "./Prikazy";
-import Metodika from "./Metodika";
-import PostPage from "./PostPage";
-import MetodikaDetail from "./MetodikaDetail";
-import MetodikaTermOverview from "./MetodikaTermOverview";
-import {MetodikaProvider} from "../context/MetodikaContext";
-import UserMenu from "./UserMenu";
-import {MetodikaTermsProvider} from "../context/MetodikaTermsContext";
-import Prikaz from "./Prikaz";
-import Profil from "./Profil";
-import MetodikaTerm from "./MetodikaTerm";
+import { useAuth } from "../auth/AuthContext";
+import Dashboard from "../user/Dashboard";
+import Prikazy from "../prikazy/Prikazy";
+import Metodika from "../metodika/Metodika";
+import PostPage from "../content/PostPage";
+import MetodikaDetail from "../metodika/MetodikaDetail";
+import MetodikaTermOverview from "../metodika/MetodikaTermOverview";
+import {MetodikaProvider} from "../metodika/MetodikaContext";
+import UserMenu from "../auth/UserMenu";
+import {MetodikaTermsProvider} from "../metodika/MetodikaTermsContext";
+import Prikaz from "../prikazy/Prikaz";
+import Profil from "../user/Profil";
+import MetodikaTerm from "../metodika/MetodikaTerm";
 
 const staticNavItems = [
 	{path: "/", label: "Úvod", icon: IconHome2},
@@ -119,7 +119,7 @@ const App: React.FC = () => {
 					<Group>
 						<ColorSchemeToggle/>
 						{loggedIn ?
-							<UserMenu/>
+							<UserMenu onSuccess={() => {}}/>
 							:
 							<Button
 								color="blue"

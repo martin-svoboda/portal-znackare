@@ -2,14 +2,14 @@ import React from 'react';
 import {
 	NavLink, Loader, Stack, Container, Title, Anchor, Breadcrumbs, Text
 } from '@mantine/core';
-import {useMetodika} from '../context/MetodikaContext';
+import {useMetodika} from './MetodikaContext';
 import {useNavigate} from 'react-router-dom';
 import {useMediaQuery} from '@mantine/hooks';
-import {getHeadingsFromHtml} from '../utils/textHlepers';
+import { getHeadingsFromHtml } from '../shared/formatting';
 import {Helmet} from "react-helmet-async";
-import {useMetodikaTerms} from "../context/MetodikaTermsContext";
+import {useMetodikaTerms} from "./MetodikaTermsContext";
 import MetodikaContainer from "./MetodikaContainer";
-import {BreadcrumbsNav} from "./BreadcrumbsNav";
+import {BreadcrumbsNav} from "../shared/BreadcrumbsNav";
 import {TableOfContents} from "@mantine/core/lib";
 
 type Term = {

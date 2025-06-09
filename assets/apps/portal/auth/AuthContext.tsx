@@ -5,7 +5,7 @@ import React, {
 	useEffect,
 	ReactNode
 } from 'react';
-import { apiRequest } from '../utils/apiClient';
+import { apiRequest } from '../shared/api';
 
 type User = {
 	INT_ADR: string;

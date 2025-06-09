@@ -1,9 +1,8 @@
 import React from "react";
 import {Card, Group, Text, Stack, Badge, Title, Divider, Container} from "@mantine/core";
-import {useAuth} from "../context/AuthContext";
+import {useAuth} from "../auth/AuthContext";
 import {Helmet} from "react-helmet-async";
-import {BreadcrumbsNav} from "./BreadcrumbsNav";
-import RequireLogin from "./RequireLogin";
+import RequireLogin from "../auth/RequireLogin";
 
 const fieldLabels: Record<string, string> = {
 	Jmeno: "Jméno",

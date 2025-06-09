@@ -15,21 +15,21 @@ import {
 } from "@mantine/core";
 import {IconCrown} from "@tabler/icons-react";
 import {useParams} from "react-router-dom";
-import {apiRequest} from "../utils/apiClient";
+import {apiRequest} from "../shared/api";
 import {notifications} from "@mantine/notifications";
 import {Helmet} from "react-helmet-async";
-import {useAuth} from "../context/AuthContext";
+import {useAuth} from "../auth/AuthContext";
 import {
 	MantineReactTable,
 	useMantineReactTable,
 	type MRT_ColumnDef,
 } from 'mantine-react-table';
 import {MRT_Localization_CS} from "mantine-react-table/locales/cs";
-import {BreadcrumbsNav} from "./BreadcrumbsNav";
-import NahledTim from "./NahledTim";
-import {barvaMantine, barvaDleJmena} from "../utils/colors";
-import {Znacka} from "./Znacka";
-import MapaTrasy from "./MapaTrasy";
+import {BreadcrumbsNav} from "../shared/BreadcrumbsNav";
+import NahledTim from "../components/NahledTim";
+import {barvaMantine, barvaDleJmena} from "../shared/colors";
+import {Znacka} from "../components/Znacka";
+import MapaTrasy from "../components/MapaTrasy";
 import {PrikazStavBadge} from "./PrikazStavBadge";
 import {PrikazTypeIcon} from "./PrikazTypeIcon";
 

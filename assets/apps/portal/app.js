@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './components/App';
+import App from './app/App';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import 'mantine-react-table/styles.css';
@@ -11,8 +11,8 @@ import {
 } from '@tanstack/react-query';
 import {BrowserRouter} from 'react-router-dom';
 import {HelmetProvider} from 'react-helmet-async';
-import {AuthProvider} from './context/AuthContext';
-import {Button, MantineProvider} from '@mantine/core';
+import {AuthProvider} from './auth/AuthContext';
+import {MantineProvider} from '@mantine/core';
 import {Notifications} from '@mantine/notifications';
 import apiFetch from '@wordpress/api-fetch';
 
@@ -28,9 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	const rootElement = document.querySelector('[data-app="portal"]');
 	if (!rootElement) {
-		console.error("Element #app-root nebyl nalezen.");
+		console.error("Element [data-app='portal'] nebyl nalezen.");
 		return;
-
 	}
 
 	if (rootElement && window.kct_portal) {
@@ -40,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				<HelmetProvider>
 					<AuthProvider>
 						<BrowserRouter>
-							<MantineProvider withNormalizeCSS withGlobalStyles>
+							<MantineProvider>
 								<Notifications/>
 								<App/>
 							</MantineProvider>

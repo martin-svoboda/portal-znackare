@@ -1,5 +1,5 @@
 import React, {useEffect} from 'react';
-import {useAuth} from '../context/AuthContext';
+import {useAuth} from './AuthContext';
 import LoginForm from './LoginForm';
 
 type RequireLoginProps = {

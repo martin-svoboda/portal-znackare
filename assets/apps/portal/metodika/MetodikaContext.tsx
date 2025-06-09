@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useParams } from "react-router-dom";
-import { apiRequest } from "../utils/apiClient";
+import { apiRequest } from "../shared/api";
 import { notifications } from "@mantine/notifications";
 
 type Post = {

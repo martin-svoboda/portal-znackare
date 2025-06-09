@@ -1,3 +1,11 @@
+export function formatKm(km?: string | null): string {
+	if (!km || isNaN(Number(km))) return "";
+	return parseFloat(km).toLocaleString("cs-CZ", {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 3,
+	});
+}
+
 export function getHeadingsFromHtml(html: string) {
 	const container = document.createElement('div');
 	container.innerHTML = html;
@@ -9,16 +17,13 @@ export function getHeadingsFromHtml(html: string) {
 	return headings;
 }
 
-
 /**
  * Přidá automaticky id do H2-H6, pokud ho nemají.
  * Zachovává původní id, pokud existuje.
- * @param {string} html
- * @returns {string}
  */
-export function addHeadingIdsToHtml(html) {
+export function addHeadingIdsToHtml(html: string): string {
 	// Pomocná funkce na vytvoření slug/id z textu nadpisu
-	function slugify(str) {
+	function slugify(str: string): string {
 		return str
 			.toLowerCase()
 			.normalize('NFD') // diakritika pryč

@@ -7,8 +7,8 @@ import {
 	IconCash, IconHammer, IconBrush, IconTool, IconSignLeft,
 } from '@tabler/icons-react';
 import {Badge, ThemeIcon} from '@mantine/core';
-import {Znacka} from "./Znacka";
-import {barvaDleJmena} from "../utils/colors";
+import {Znacka} from "../components/Znacka";
+import {barvaDleJmena} from "../shared/colors";
 
 type PrikazTypeIconProps = {
 	type: string;

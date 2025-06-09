@@ -1,7 +1,7 @@
 import React from "react";
 import {NavLink, TableOfContents} from "@mantine/core";
 import {useNavigate, useParams} from "react-router-dom";
-import {useMetodika} from "../context/MetodikaContext";
+import {useMetodika} from "./MetodikaContext";
 import {useDisclosure} from "@mantine/hooks";
 
 const MetodikaSidebar = () => {

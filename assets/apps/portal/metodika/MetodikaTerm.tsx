@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { Loader, Text, Stack } from '@mantine/core';
-import { useMetodika } from '../context/MetodikaContext';
+import { useMetodika } from './MetodikaContext';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from "react-helmet-async";
-import { useMetodikaTerms } from "../context/MetodikaTermsContext";
+import { useMetodikaTerms } from "./MetodikaTermsContext";
 import MetodikaContainer from "./MetodikaContainer";
-import { BreadcrumbsNav } from "./BreadcrumbsNav";
+import { BreadcrumbsNav } from "../shared/BreadcrumbsNav";
 import { Title } from "@mantine/core";
 
 const MetodikaTerm: React.FC = () => {

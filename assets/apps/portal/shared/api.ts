@@ -1,6 +1,6 @@
 import apiFetch from '@wordpress/api-fetch';
 import { addQueryArgs } from '@wordpress/url';
-import {notifications} from "@mantine/notifications";
+import { notifications } from "@mantine/notifications";
 
 export async function apiRequest<T = any>(
 	endpoint: string,
@@ -16,12 +16,11 @@ export async function apiRequest<T = any>(
 			},
 		};
 		if (method === 'GET' && data) {
-
 			path = addQueryArgs(path, data);
 		} else if (method !== 'GET') {
 			options.data = data;
 		}
-		console.log('call API:', path)
+		console.log('call API:', path);
 
 		return await apiFetch({ path, ...options });
 	} catch (error: any) {

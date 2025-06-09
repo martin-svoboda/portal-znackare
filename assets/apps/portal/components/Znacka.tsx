@@ -1,5 +1,5 @@
 import React from "react";
-import {barvaDlePresunu, barvaDleJmena} from "../utils/colors";
+import {barvaDlePresunu, barvaDleJmena} from "../shared/colors";
 
 type ZnackaProps = {
 	color?: string; // Vedoucí barva (např. modrá)

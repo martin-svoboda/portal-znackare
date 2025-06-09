@@ -20,9 +20,9 @@ import {
 	IconEye,
 	IconBook2
 } from '@tabler/icons-react';
-import ActionCards from "./ActionCards";
+import ActionCards from "../shared/ActionCards";
 import {Helmet} from "react-helmet-async";
-import {useMetodikaTerms, Term} from "../context/MetodikaTermsContext";
+import {useMetodikaTerms, Term} from "./MetodikaTermsContext";
 
 // Pro soubory
 type MethodicalFile = {

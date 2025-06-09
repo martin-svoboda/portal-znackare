@@ -5,12 +5,12 @@ import {
 import {IconMenu2} from '@tabler/icons-react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {Helmet} from 'react-helmet-async';
-import {addHeadingIdsToHtml} from '../utils/textHlepers';
+import { addHeadingIdsToHtml } from '../shared/formatting';
 import {TableOfContents} from '@mantine/core';
-import {useMetodika} from '../context/MetodikaContext';
-import {useMetodikaTerms} from '../context/MetodikaTermsContext';
+import {useMetodika} from './MetodikaContext';
+import {useMetodikaTerms} from './MetodikaTermsContext';
 import MetodikaContainer from './MetodikaContainer';
-import {BreadcrumbsNav} from "./BreadcrumbsNav";
+import {BreadcrumbsNav} from "../shared/BreadcrumbsNav";
 import {useMediaQuery} from '@mantine/hooks';
 
 const MetodikaDetail: React.FC = () => {

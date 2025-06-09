@@ -22,10 +22,10 @@ import {
 } from 'mantine-react-table';
 import {MRT_Localization_CS} from 'mantine-react-table/locales/cs';
 import {useEffect, useMemo, useState} from 'react';
-import {useAuth} from '../context/AuthContext';
-import {apiRequest} from '../utils/apiClient';
+import {useAuth} from '../auth/AuthContext';
+import {apiRequest} from '../shared/api';
 import {notifications} from '@mantine/notifications';
-import RequireLogin from './RequireLogin';
+import RequireLogin from '../auth/RequireLogin';
 import {Helmet} from "react-helmet-async";
 import {useNavigate} from "react-router-dom";
 import {
@@ -35,7 +35,7 @@ import {
 	IconSignLeft,
 	IconCrown
 } from "@tabler/icons-react";
-import {BreadcrumbsNav} from "./BreadcrumbsNav";
+import {BreadcrumbsNav} from "../shared/BreadcrumbsNav";
 import {PrikazStavBadge} from "./PrikazStavBadge";
 import {PrikazTypeIcon} from "./PrikazTypeIcon";
 

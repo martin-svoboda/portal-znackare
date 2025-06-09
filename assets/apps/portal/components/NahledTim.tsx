@@ -1,8 +1,8 @@
 import React, {useRef, useLayoutEffect, useState} from "react";
 import {Paper, Flex, Group, Text, Box} from "@mantine/core";
-import {formatKm} from "../utils/formatKm";
+import {formatKm} from "../shared/formatting";
 import {TimArrowShape} from "./TimArrowShape"; // Importuj svoji komponentu
-import {barvaDleJmena} from "../utils/colors";
+import {barvaDleJmena} from "../shared/colors";
 
 function getItemLines(item: any) {
 	return [1, 2, 3]

@@ -1,9 +1,7 @@
 import {Container, SimpleGrid, Title, Card, Group, Text} from "@mantine/core";
 import {IconChecklist, IconBooks} from "@tabler/icons-react";
-import ActionCards from "./ActionCards";
-import LoginForm from "./LoginForm";
-import {useAuth} from "../context/AuthContext";
-import RequireLogin from "./RequireLogin";
+import ActionCards from "../shared/ActionCards";
+import RequireLogin from "../auth/RequireLogin";
 import {Helmet} from "react-helmet-async";
 
 const cards = [
