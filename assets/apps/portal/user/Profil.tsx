@@ -34,12 +34,10 @@ const fieldLabels: Record<string, string> = {
 const Profil = () => {
 	const {user, loggedIn} = useAuth();
 
-	if (!user) return <Text>Načítání dat profilu…</Text>;
-
 	return (
 		<RequireLogin>
 			<Helmet>
-				<title>Profil {user?.Jmeno} {user?.Prijmeni} | {window.kct_portal?.bloginfo?.name}</title>
+				<title>Profil { user ? `${user?.Jmeno} ${user?.Prijmeni}` : 'uživatele' } | {window.kct_portal?.bloginfo?.name}</title>
 			</Helmet>
 
 			<Container size="lg" px={0} my="md">
@@ -47,6 +45,8 @@ const Profil = () => {
 				<Title order={2} mb="md">
 					Profil uživatele
 				</Title>
+
+
 				<Card shadow="sm" padding="lg" radius="md" withBorder>
 					{user ?
 						<Stack gap="xs">

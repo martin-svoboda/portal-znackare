@@ -27,8 +27,8 @@ const druhZPIkona: Record<string, any> = {
 export function PrikazTypeIcon({
 								   type,
 								   color = "",
-								   shape = "",
-								   move = "",
+								   shape = "pasova",
+								   move = "PTZ",
 								   size = 28
 							   }: PrikazTypeIconProps) {
 	if ("O" === type) {

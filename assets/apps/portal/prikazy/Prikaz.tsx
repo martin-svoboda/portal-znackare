@@ -32,6 +32,7 @@ import {Znacka} from "../components/Znacka";
 import MapaTrasy from "../components/MapaTrasy";
 import {PrikazStavBadge} from "./PrikazStavBadge";
 import {PrikazTypeIcon} from "./PrikazTypeIcon";
+import RequireLogin from "../auth/RequireLogin";
 
 function groupByEvCiTIM(rows: any[]) {
 	const groups: Record<string, any> = {};
@@ -79,7 +80,7 @@ const PrikazHead = ({head, soubeh}: { head: any, soubeh?: any[] }) => (
 			<Stack gap="xs">
 				<Text fw={700} fz="xl">{head.Cislo_ZP}</Text>
 				<Text c="dimmed" fz="sm">{head.Druh_ZP_Naz}</Text>
-				<PrikazStavBadge stav={head.Stav_ZP_Naz} />
+				<PrikazStavBadge stav={head.Stav_ZP_Naz}/>
 			</Stack>
 			<Stack gap="sm">
 				<PrikazTypeIcon
@@ -304,33 +305,35 @@ const Prikaz = () => {
 	});
 
 	return (
-		<Container size="lg" px={0} my="md">
-			<Helmet>
-				<title>Příkaz {head?.Cislo_ZP || id} | {window.kct_portal?.bloginfo?.name}</title>
-			</Helmet>
-			<BreadcrumbsNav items={breadcrumb}/>
-			<Title mb="xl" order={2}>
-				Značkařský příkaz {head?.Cislo_ZP || id}
-			</Title>
-			<Card shadow="sm" mb="xl">
-				{loading ? (
-					<Loader/>
-				) : (
-					<PrikazHead head={head} soubeh={soubeh}/>
-				)}
-			</Card>
-			<Card shadow="sm" padding="sm" mb="xl">
-				<Title order={3} mb="sm">Informační místa na trase</Title>
-				<MantineReactTable table={table}/>
-			</Card>
-			<Card shadow="sm" mb="xl">
-				{loading ? (
-					<Loader/>
-				) : (
-					<MapaTrasy body={mapPoints} route={mapRoute}/>
-				)}
-			</Card>
-		</Container>
+		<RequireLogin>
+			<Container size="lg" px={0} my="md">
+				<Helmet>
+					<title>Příkaz {head?.Cislo_ZP || id} | {window.kct_portal?.bloginfo?.name}</title>
+				</Helmet>
+				<BreadcrumbsNav items={breadcrumb}/>
+				<Title mb="xl" order={2}>
+					Značkařský příkaz {head?.Cislo_ZP || id}
+				</Title>
+				<Card shadow="sm" mb="xl">
+					{loading ? (
+						<Loader/>
+					) : (
+						<PrikazHead head={head} soubeh={soubeh}/>
+					)}
+				</Card>
+				<Card shadow="sm" padding="sm" mb="xl">
+					<Title order={3} mb="sm">Informační místa na trase</Title>
+					<MantineReactTable table={table}/>
+				</Card>
+				<Card shadow="sm" mb="xl">
+					{loading ? (
+						<Loader/>
+					) : (
+						<MapaTrasy body={mapPoints} route={mapRoute}/>
+					)}
+				</Card>
+			</Container>
+		</RequireLogin>
 	);
 };
 
