@@ -118,6 +118,8 @@ class DbClient {
 		return [
 			'head' => $head,
 			'data' => $result[1] ?? [],
+			'data2' => $result[2] ?? [],
+			'data3' => $result[3] ?? [],
 		];
 	}
 
