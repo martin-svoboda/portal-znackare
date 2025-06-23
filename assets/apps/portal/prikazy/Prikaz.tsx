@@ -33,6 +33,7 @@ import MapaTrasy from "../components/MapaTrasy";
 import {PrikazStavBadge} from "./PrikazStavBadge";
 import {PrikazTypeIcon} from "./PrikazTypeIcon";
 import RequireLogin from "../auth/RequireLogin";
+import {formatKm} from "../shared/formatting";
 
 function groupByEvCiTIM(rows: any[]) {
 	const groups: Record<string, any> = {};
@@ -74,23 +75,25 @@ const Member = ({name, isLeader}: { name: string; isLeader: boolean }) =>
 	);
 
 // Hlavicka
-const PrikazHead = ({head, soubeh}: { head: any, soubeh?: any[] }) => (
+const PrikazHead = ({head, soubeh, info}: { head: any, soubeh?: any[], info?: any[] }) => (
 	<Stack gap="md">
 		<Group gap="xl" align="start" wrap="wrap">
-			<Stack gap="xs">
-				<Text fw={700} fz="xl">{head.Cislo_ZP}</Text>
-				<Text c="dimmed" fz="sm">{head.Druh_ZP_Naz}</Text>
-				<PrikazStavBadge stav={head.Stav_ZP_Naz}/>
-			</Stack>
 			<Stack gap="sm">
 				<PrikazTypeIcon
 					type={head.Druh_ZP}
 					size={66}
 					shape={"pasova"}
 					move={"PTZ"}
-					color={"červená"}
+					color={info?.Barva_Naz}
 				/>
-				<Text size="sm">Km: <b>--</b></Text>
+				{info?.Delka_ZU &&
+					<Text size="sm">Km: <b>{info?.Delka_ZU}</b></Text>
+				}
+			</Stack>
+			<Stack gap="xs">
+				<Text fw={700} fz="xl">{info?.Nazev_ZU}</Text>
+				<Text c="dimmed" fz="sm">{head.Druh_ZP_Naz}</Text>
+				<PrikazStavBadge stav={head.Stav_ZP_Naz}/>
 			</Stack>
 			<Stack gap="sm">
 				<Text size="sm">Kraj: <b>{head.KKZ}</b></Text>
@@ -108,6 +111,9 @@ const PrikazHead = ({head, soubeh}: { head: any, soubeh?: any[] }) => (
 			<Stack gap="xs">
 				<Text size="sm">Předpokládané trvání cesty: <b>{head.Doba}</b> den/dnů</Text>
 				<Text size="sm">pro <b>{head.Pocet_clenu}</b> člennou skupinu</Text>
+				{info?.Delka_ZU &&
+					<Text size="sm">Dékla úseku <b>{formatKm(info?.Delka_ZU)}</b></Text>
+				}
 				{head.ZvysenaSazba === "1" && <Badge color="yellow" mt={4}>Zvýšená sazba</Badge>}
 			</Stack>
 		</Group>
@@ -147,6 +153,7 @@ const Prikaz = () => {
 
 	const [head, setHead] = useState<any>(null);
 	const [data, setData] = useState<any[]>([]);
+	const [info, setInfo] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
@@ -155,10 +162,12 @@ const Prikaz = () => {
 			.then(result => {
 				setHead(result.head || {});
 				setData(result.data || []);
+				setInfo(result.info || []);
 			})
 			.catch(err => {
 				setHead(null);
 				setData([]);
+				setInfo([]);
 			})
 			.finally(() => setLoading(false));
 	}, [intAdr, id]);
@@ -318,7 +327,7 @@ const Prikaz = () => {
 					{loading ? (
 						<Loader/>
 					) : (
-						<PrikazHead head={head} soubeh={soubeh}/>
+						<PrikazHead head={head} soubeh={soubeh} info={info}/>
 					)}
 				</Card>
 				<Card shadow="sm" padding="sm" mb="xl">
