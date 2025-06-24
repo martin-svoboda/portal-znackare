@@ -327,7 +327,7 @@ const Prikaz = () => {
 										</Box>
 										<Box>
 											<Text size="xs" c="dimmed">{item.Druh_Presunu}</Text>
-											<Text size="xs">ID: {item.ID_PREDMETY}</Text>
+											<Text size="xs">ID: {item.EvCi_TIM + item.Premet_Index}</Text>
 										</Box>
 									</Flex>
 								</Flex>
