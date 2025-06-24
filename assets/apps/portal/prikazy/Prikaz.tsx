@@ -76,7 +76,7 @@ const Member = ({name, isLeader}: { name: string; isLeader: boolean }) =>
 	);
 
 // Hlavicka
-const PrikazHead = ({head, soubeh, delka}: { head: any, soubeh?: any[], delka?: any }) => (
+const PrikazHead = ({head, delka}: { head: any, delka?: any }) => (
 	<Stack gap="md">
 		<Group gap="xl" align="start" wrap="wrap">
 			<Stack gap="sm">
@@ -123,25 +123,11 @@ const PrikazHead = ({head, soubeh, delka}: { head: any, soubeh?: any[], delka?: 
 				</Stack>
 			</>
 		)}
-		{soubeh && soubeh.length > 1 && (
-			<>
-				<Divider my="xs"/>
-				<Stack gap="xs">
-					<Text fw={700} fz="md">
-						Možný souběh tras
-					</Text>
-					<Group gap="xs" wrap="wrap">
-						{soubeh.map((row, i) => (
-							<Znacka size={30} move={row.Druh_Presunu} color={row.Barva}/>
-						))}
-					</Group>
-				</Stack>
-			</>
-		)}
+
 	</Stack>
 );
 
-const PrikazUseky = ({useky}: { useky: any[] }) => {
+const PrikazUseky = ({useky, soubeh}: { useky: any[], soubeh?: any[] }) => {
 	const rows = useky.map((usek) => (
 		<Table.Tr key={usek.Kod_ZU}>
 			<Table.Td><Znacka color={usek.Barva_Naz} size={30}/></Table.Td>
@@ -152,17 +138,34 @@ const PrikazUseky = ({useky}: { useky: any[] }) => {
 	));
 
 	return (
-		<Table>
-			<Table.Thead>
-				<Table.Tr>
-					<Table.Th></Table.Th>
-					<Table.Th>Kód</Table.Th>
-					<Table.Th>Název úseku</Table.Th>
-					<Table.Th>Délka</Table.Th>
-				</Table.Tr>
-			</Table.Thead>
-			<Table.Tbody>{rows}</Table.Tbody>
-		</Table>
+		<>
+			<Table>
+				<Table.Thead>
+					<Table.Tr>
+						<Table.Th></Table.Th>
+						<Table.Th>Kód</Table.Th>
+						<Table.Th>Název úseku</Table.Th>
+						<Table.Th>Délka</Table.Th>
+					</Table.Tr>
+				</Table.Thead>
+				<Table.Tbody>{rows}</Table.Tbody>
+			</Table>
+			{soubeh && soubeh.length > 1 && (
+				<>
+					<Divider my="xs"/>
+					<Stack gap="xs">
+						<Text fw={700} fz="md">
+							Možný souběh tras
+						</Text>
+						<Group gap="xs" wrap="wrap">
+							{soubeh.map((row, i) => (
+								<Znacka size={30} move={row.Druh_Presunu} color={row.Barva}/>
+							))}
+						</Group>
+					</Stack>
+				</>
+			)}
+		</>
 	);
 }
 
@@ -353,13 +356,27 @@ const Prikaz = () => {
 					{loading ? (
 						<Loader/>
 					) : (
-						<PrikazHead head={head} soubeh={soubeh} delka={delka}/>
+						<PrikazHead head={head} delka={delka}/>
 					)}
 				</Card>
-				{useky.length > 0 &&
+				{(useky.length > 0 || soubeh.length > 1) &&
 					<Card shadow="sm" padding="sm" mb="xl">
 						<Title order={3} mb="sm">Úseky tras k obnově</Title>
 						<PrikazUseky useky={useky}/>
+						{soubeh && soubeh.length > 1 && (
+							<>
+								<Divider my="xs"/>
+
+								<Group gap="xs" wrap="wrap">
+									<Text fw={700} fz="md">
+										Možný souběh/křížení tras:
+									</Text>
+									{soubeh.map((row, i) => (
+										<Znacka size={30} move={row.Druh_Presunu} color={row.Barva}/>
+									))}
+								</Group>
+							</>
+						)}
 					</Card>
 				}
 				<Card shadow="sm" padding="sm" mb="xl">
