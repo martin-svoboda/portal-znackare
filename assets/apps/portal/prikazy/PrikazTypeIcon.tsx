@@ -12,9 +12,6 @@ import {barvaDleJmena} from "../shared/colors";
 
 type PrikazTypeIconProps = {
 	type: string;
-	color?: string; // Vedoucí barva (např. modrá)
-	shape?: "pasova" | "hrad" | "studanka" | "vrchol" | "zajimavost" | "mistni" | "NS";
-	move?: "PTZ" | "LTZ" | "CTZ";
 	size?: number;
 };
 
@@ -26,15 +23,8 @@ const druhZPIkona: Record<string, any> = {
 
 export function PrikazTypeIcon({
 								   type,
-								   color = "",
-								   shape = "pasova",
-								   move = "PTZ",
 								   size = 28
 							   }: PrikazTypeIconProps) {
-	if ("O" === type) {
-		return (<Znacka move={move} color={color} size={size} shape={shape}/>);
-	}
-
 	const IconComponent = druhZPIkona[type] || IconHammer; // Default: kladivo
 
 	return (

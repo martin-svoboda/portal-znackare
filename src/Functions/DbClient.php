@@ -116,9 +116,9 @@ class DbClient {
 		}
 
 		return [
-			'head' => $head,
-			'data' => $result[1] ?? [],
-			'info' => $result[2] ?? [],
+			'head'     => $head,
+			'predmety' => $result[1] ?? [],
+			'useky'    => $result[2] ?? [],
 		];
 	}
 

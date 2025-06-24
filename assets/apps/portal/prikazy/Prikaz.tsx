@@ -12,6 +12,7 @@ import {
 	Divider,
 	Paper,
 	Flex,
+	Table
 } from "@mantine/core";
 import {IconCrown} from "@tabler/icons-react";
 import {useParams} from "react-router-dom";
@@ -75,24 +76,20 @@ const Member = ({name, isLeader}: { name: string; isLeader: boolean }) =>
 	);
 
 // Hlavicka
-const PrikazHead = ({head, soubeh, info}: { head: any, soubeh?: any[], info?: any[] }) => (
+const PrikazHead = ({head, soubeh, delka}: { head: any, soubeh?: any[], delka?: any }) => (
 	<Stack gap="md">
 		<Group gap="xl" align="start" wrap="wrap">
 			<Stack gap="sm">
 				<PrikazTypeIcon
 					type={head.Druh_ZP}
 					size={66}
-					shape={"pasova"}
-					move={"PTZ"}
-					color={info?.Barva_Naz}
 				/>
-				{info?.Delka_ZU &&
-					<Text size="sm">Km: <b>{info?.Delka_ZU}</b></Text>
-				}
 			</Stack>
 			<Stack gap="xs">
-				<Text fw={700} fz="xl">{info?.Nazev_ZU}</Text>
 				<Text c="dimmed" fz="sm">{head.Druh_ZP_Naz}</Text>
+				{delka &&
+					<Text size="sm">Dékla: <b>{formatKm(delka)}</b></Text>
+				}
 				<PrikazStavBadge stav={head.Stav_ZP_Naz}/>
 			</Stack>
 			<Stack gap="sm">
@@ -111,9 +108,7 @@ const PrikazHead = ({head, soubeh, info}: { head: any, soubeh?: any[], info?: an
 			<Stack gap="xs">
 				<Text size="sm">Předpokládané trvání cesty: <b>{head.Doba}</b> den/dnů</Text>
 				<Text size="sm">pro <b>{head.Pocet_clenu}</b> člennou skupinu</Text>
-				{info?.Delka_ZU &&
-					<Text size="sm">Dékla úseku <b>{formatKm(info?.Delka_ZU)}</b></Text>
-				}
+
 				{head.ZvysenaSazba === "1" && <Badge color="yellow" mt={4}>Zvýšená sazba</Badge>}
 			</Stack>
 		</Group>
@@ -146,35 +141,61 @@ const PrikazHead = ({head, soubeh, info}: { head: any, soubeh?: any[], info?: an
 	</Stack>
 );
 
+const PrikazUseky = ({useky}: { useky: any[] }) => {
+	const rows = useky.map((usek) => (
+		<Table.Tr key={usek.Kod_ZU}>
+			<Table.Td><Znacka color={usek.Barva_Naz} size={30}/></Table.Td>
+			<Table.Td>{usek.Kod_ZU}</Table.Td>
+			<Table.Td>{usek.Nazev_ZU}</Table.Td>
+			<Table.Td>{formatKm(usek.Delka_ZU)}</Table.Td>
+		</Table.Tr>
+	));
+
+	return (
+		<Table>
+			<Table.Thead>
+				<Table.Tr>
+					<Table.Th></Table.Th>
+					<Table.Th>Kód</Table.Th>
+					<Table.Th>Název úseku</Table.Th>
+					<Table.Th>Délka</Table.Th>
+				</Table.Tr>
+			</Table.Thead>
+			<Table.Tbody>{rows}</Table.Tbody>
+		</Table>
+	);
+}
+
 const Prikaz = () => {
 	const {id} = useParams();
 	const {getIntAdr} = useAuth();
 	const intAdr = getIntAdr();
 
 	const [head, setHead] = useState<any>(null);
-	const [data, setData] = useState<any[]>([]);
-	const [info, setInfo] = useState<any[]>([]);
+	const [predmety, setPredmety] = useState<any[]>([]);
+	const [useky, setUseky] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		setLoading(true);
 		apiRequest("/prikaz", "GET", {int_adr: intAdr, id})
 			.then(result => {
+				console.log(result);
 				setHead(result.head || {});
-				setData(result.data || []);
-				setInfo(result.info || []);
+				setPredmety(result.predmety || []);
+				setUseky(result.useky || []);
 			})
 			.catch(err => {
 				setHead(null);
-				setData([]);
-				setInfo([]);
+				setPredmety([]);
+				setUseky([]);
 			})
 			.finally(() => setLoading(false));
 	}, [intAdr, id]);
 
 	const tableData = useMemo(
-		() => Array.isArray(data) ? [...data].sort((a, b) => Number(a.Poradi ?? 0) - Number(b.Poradi ?? 0)) : [],
-		[data]
+		() => Array.isArray(predmety) ? [...predmety].sort((a, b) => Number(a.Poradi ?? 0) - Number(b.Poradi ?? 0)) : [],
+		[predmety]
 	);
 
 	const groupedData = useMemo(
@@ -183,9 +204,9 @@ const Prikaz = () => {
 	);
 
 	const soubeh = useMemo(() => {
-		if (head?.Druh_ZP !== "O" || !Array.isArray(data)) return [];
+		if (head?.Druh_ZP !== "O" || !Array.isArray(predmety)) return [];
 		const set = new Set();
-		return data
+		return predmety
 			.filter(item => item.Barva && item.Druh_Presunu)
 			.map(item => ({Barva: item.Barva, Druh_Presunu: item.Druh_Presunu}))
 			.filter((item) => {
@@ -194,7 +215,12 @@ const Prikaz = () => {
 				set.add(key);
 				return true;
 			});
-	}, [data]);
+	}, [predmety]);
+
+	const delka = useMemo(() => {
+		if (undefined == useky || head?.Druh_ZP !== "O" || !Array.isArray(useky) || useky.length === 0) return null;
+		return useky.reduce((sum, usek) => sum + Number(usek.Delka_ZU || 0), 0);
+	}, [useky, head?.Druh_ZP]);
 
 	const mapPoints = useMemo(
 			() =>
@@ -327,9 +353,15 @@ const Prikaz = () => {
 					{loading ? (
 						<Loader/>
 					) : (
-						<PrikazHead head={head} soubeh={soubeh} info={info}/>
+						<PrikazHead head={head} soubeh={soubeh} delka={delka}/>
 					)}
 				</Card>
+				{useky.length > 0 &&
+					<Card shadow="sm" padding="sm" mb="xl">
+						<Title order={3} mb="sm">Úseky tras k obnově</Title>
+						<PrikazUseky useky={useky}/>
+					</Card>
+				}
 				<Card shadow="sm" padding="sm" mb="xl">
 					<Title order={3} mb="sm">Informační místa na trase</Title>
 					<MantineReactTable table={table}/>

@@ -128,9 +128,6 @@ const ProtectedContent = () => {
 							<PrikazTypeIcon
 								type={row.original.Druh_ZP}
 								size={28}
-								shape={"pasova"}
-								move={"PTZ"}
-								color={"červená"}
 							/>
 							<span>{row.original.Druh_ZP_Naz}</span>
 						</Group>
