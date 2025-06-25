@@ -1,12 +1,12 @@
 export function barvaDlePresunu(val: string | undefined) {
 	if (!val) return "";
-	const v = val.trim().toLowerCase();
+	const v = val.trim().toUpperCase();
 	switch (v) {
-		case "PTZ":
+		case "PZT":
 			return "#f5f5f5";  // bílá (RAL 1013 - perlová bílá)
-		case "LTZ":
+		case "LZT":
 			return "#f7951d";  // oranžová (RAL 2009 - dopravní oranžová)
-		case "CTZ":
+		case "CZT":
 			return "#ffe000";  // žlutá (RAL 1003 - signální žlutá)
 		default:
 			return "#f5f5f5";     // fallback (bílá)

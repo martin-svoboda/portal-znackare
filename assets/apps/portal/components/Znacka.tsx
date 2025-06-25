@@ -4,21 +4,23 @@ import {barvaDlePresunu, barvaDleJmena} from "../shared/colors";
 type ZnackaProps = {
 	color?: string; // Vedoucí barva (např. modrá)
 	shape?: "pasova" | "hrad" | "studanka" | "vrchol" | "zajimavost" | "mistni" | "NS";
-	move?: "PTZ" | "LTZ" | "CTZ";
+	move?: "PZT" | "LZT" | "CZT";
 	size?: number;
 };
 
 export const Znacka = ({
 						   color = "",
 						   shape = "pasova",
-						   move = "PTZ",
+						   move = "PZT",
 						   size = 100,
 					   }: ZnackaProps) => {
 	let upozorneni = barvaDlePresunu(move);
 	let vedouci = barvaDleJmena(color);
 
+	console.log("Znacka", color, shape, move, size);
+	console.log("Znacka barvy", upozorneni, vedouci);
 	if (shape === "NS") {
-		upozorneni = barvaDlePresunu("PTZ");
+		upozorneni = barvaDlePresunu("PZT");
 		vedouci = barvaDleJmena("zelená");
 	}
 

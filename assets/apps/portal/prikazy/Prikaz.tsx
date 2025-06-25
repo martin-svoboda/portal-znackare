@@ -12,10 +12,10 @@ import {
 	Divider,
 	Paper,
 	Flex,
-	Table
+	Table, Button
 } from "@mantine/core";
 import {IconCrown} from "@tabler/icons-react";
-import {useParams} from "react-router-dom";
+import {useParams, useNavigate} from "react-router-dom";
 import {apiRequest} from "../shared/api";
 import {notifications} from "@mantine/notifications";
 import {Helmet} from "react-helmet-async";
@@ -35,6 +35,7 @@ import {PrikazStavBadge} from "./PrikazStavBadge";
 import {PrikazTypeIcon} from "./PrikazTypeIcon";
 import RequireLogin from "../auth/RequireLogin";
 import {formatKm} from "../shared/formatting";
+import {PrikazHead} from "./components/PrikazHead";
 
 function groupByEvCiTIM(rows: any[]) {
 	const groups: Record<string, any> = {};
@@ -62,72 +63,9 @@ const breadcrumb = [
 	{title: "Příkazy", href: "/prikazy"},
 ];
 
-// Člen týmu s korunou
-const Member = ({name, isLeader}: { name: string; isLeader: boolean }) =>
-	!name?.trim() ? null : (
-		<Group gap="xs" align="center" wrap="nowrap">
-			<Text span fw={isLeader ? 700 : 400}>
-				{name}
-			</Text>
-			{isLeader && (
-				<IconCrown color="#ffd700" size={18} title="Vedoucí" aria-label="Vedoucí"/>
-			)}
-		</Group>
-	);
+const isNezpracovany = (stav) => stav === 'Přidělený' || stav === 'Vystavený';
 
-// Hlavicka
-const PrikazHead = ({head, delka}: { head: any, delka?: any }) => (
-	<Stack gap="md">
-		<Group gap="xl" align="start" wrap="wrap">
-			<Stack gap="sm">
-				<PrikazTypeIcon
-					type={head.Druh_ZP}
-					size={66}
-				/>
-			</Stack>
-			<Stack gap="xs">
-				<Text c="dimmed" fz="sm">{head.Druh_ZP_Naz}</Text>
-				{delka &&
-					<Text size="sm">Dékla: <b>{formatKm(delka)}</b></Text>
-				}
-				<PrikazStavBadge stav={head.Stav_ZP_Naz}/>
-			</Stack>
-			<Stack gap="sm">
-				<Text size="sm">Kraj: <b>{head.KKZ}</b></Text>
-				<Text size="sm">Obvod: <b>{head.ZO}</b></Text>
-			</Stack>
-			<Stack gap="sm">
-				{[1, 2, 3].map(i =>
-					<Member
-						key={i}
-						name={head[`Znackar${i}`]}
-						isLeader={head[`Je_Vedouci${i}`] === "1"}
-					/>
-				)}
-			</Stack>
-			<Stack gap="xs">
-				<Text size="sm">Předpokládané trvání cesty: <b>{head.Doba}</b> den/dnů</Text>
-				<Text size="sm">pro <b>{head.Pocet_clenu}</b> člennou skupinu</Text>
-
-				{head.ZvysenaSazba === "1" && <Badge color="yellow" mt={4}>Zvýšená sazba</Badge>}
-			</Stack>
-		</Group>
-		{head.Poznamka_ZP && (
-			<>
-				<Divider my="xs"/>
-				<Stack gap="xs">
-					<Text fw={700} fz="md">Popis činnosti</Text>
-					<Text style={{whiteSpace: "pre-line"}}>
-						{head.Poznamka_ZP}
-					</Text>
-				</Stack>
-			</>
-		)}
-
-	</Stack>
-);
-
-const PrikazUseky = ({useky, soubeh}: { useky: any[], soubeh?: any[] }) => {
+const PrikazUseky = ({useky}: { useky: any[] }) => {
 	const rows = useky.map((usek) => (
 		<Table.Tr key={usek.Kod_ZU}>
 			<Table.Td><Znacka color={usek.Barva_Naz} size={30}/></Table.Td>
@@ -150,21 +88,6 @@ const PrikazUseky = ({useky, soubeh}: { useky: any[], soubeh?: any[] }) => {
 				</Table.Thead>
 				<Table.Tbody>{rows}</Table.Tbody>
 			</Table>
-			{soubeh && soubeh.length > 1 && (
-				<>
-					<Divider my="xs"/>
-					<Stack gap="xs">
-						<Text fw={700} fz="md">
-							Možný souběh tras
-						</Text>
-						<Group gap="xs" wrap="wrap">
-							{soubeh.map((row, i) => (
-								<Znacka size={30} move={row.Druh_Presunu} color={row.Barva}/>
-							))}
-						</Group>
-					</Stack>
-				</>
-			)}
 		</>
 	);
 }
@@ -173,6 +96,7 @@ const Prikaz = () => {
 	const {id} = useParams();
 	const {getIntAdr} = useAuth();
 	const intAdr = getIntAdr();
+	const navigate = useNavigate();
 
 	const [head, setHead] = useState<any>(null);
 	const [predmety, setPredmety] = useState<any[]>([]);
@@ -225,6 +149,7 @@ const Prikaz = () => {
 		return useky.reduce((sum, usek) => sum + Number(usek.Delka_ZU || 0), 0);
 	}, [useky, head?.Druh_ZP]);
 
+	console.log('soubeh', soubeh);
 	const mapPoints = useMemo(
 			() =>
 				groupedData
@@ -263,6 +188,18 @@ const Prikaz = () => {
 		],
 		[]
 	);
+
+	const handleHlaseni = () => {
+		// Předáme data přes state při navigaci
+		navigate(`/prikaz/${id}/hlaseni`, {
+			state: {
+				head,
+				predmety,
+				useky,
+				delka
+			}
+		});
+	};
 
 	const table = useMantineReactTable({
 		columns,
@@ -346,7 +283,7 @@ const Prikaz = () => {
 		<RequireLogin>
 			<Container size="lg" px={0} my="md">
 				<Helmet>
-					<title>Příkaz {head?.Cislo_ZP || id} | {window.kct_portal?.bloginfo?.name}</title>
+					<title>{`Příkaz ${head?.Cislo_ZP || id || ''} | ${window.kct_portal?.bloginfo?.name || 'Portal'}`}</title>
 				</Helmet>
 				<BreadcrumbsNav items={breadcrumb}/>
 				<Title mb="xl" order={2}>
@@ -359,6 +296,14 @@ const Prikaz = () => {
 						<PrikazHead head={head} delka={delka}/>
 					)}
 				</Card>
+				{head && head.Stav_ZP_Naz && isNezpracovany(head.Stav_ZP_Naz) &&
+					<Button
+						color="blue"
+						onClick={handleHlaseni}
+					>
+						Podat hlášení
+					</Button>
+				}
 				{(useky.length > 0 || soubeh.length > 1) &&
 					<Card shadow="sm" padding="sm" mb="xl">
 						<Title order={3} mb="sm">Úseky tras k obnově</Title>

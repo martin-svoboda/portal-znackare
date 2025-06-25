@@ -38,7 +38,7 @@ const NahledTim = ({item}: { item: any }) => {
 			case "PZT":
 				return "orange.0";
 			case "LZT":
-				return "orange.6";
+				return "orange.5";
 			case "CZT":
 				return "yellow.4";
 			default:
@@ -125,7 +125,7 @@ const NahledTim = ({item}: { item: any }) => {
 									flex: 1,
 									width: '55%',
 								}}>
-									<Text ta="center" fw={700} size="sm" c="dark"
+									<Text ta="center" fw={700} size="sm" c="black"
 										  style={{
 											  transform: `scaleX(${line?.text?.length > 20 ? '0.75' : '0.85'})`,
 											  whiteSpace: 'nowrap',
@@ -148,13 +148,13 @@ const NahledTim = ({item}: { item: any }) => {
 										})}
 									</Text>
 								</Box>
-								{line.km && <Text size="sm" c="dark">{line.km} km</Text>}
+								{line.km && <Text size="sm" c="black">{line.km} km</Text>}
 							</Group>
 						))
 					) : (
 						<Text size="sm" c="dimmed" ta="center">Žádný popis</Text>
 					)}
-					<Text ta="right" size="xs" c="dark">{item.EvCi_TIM + item.Premet_Index}</Text>
+					<Text ta="right" size="xs" c="black">{item.EvCi_TIM + item.Premet_Index}</Text>
 				</Flex>
 			</Paper>
 		</Flex>

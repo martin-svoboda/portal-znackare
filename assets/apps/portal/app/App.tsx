@@ -18,6 +18,11 @@ import {
 } from "@tabler/icons-react";
 import {Routes, Route, useNavigate, useLocation,} from "react-router-dom";
 import React, {useMemo} from "react";
+import dayjs from 'dayjs';
+import 'dayjs/locale/cs';
+
+// Set Czech locale globally for dayjs
+dayjs.locale('cs');
 
 import { useAuth } from "../auth/AuthContext";
 import Dashboard from "../user/Dashboard";
@@ -30,6 +35,7 @@ import {MetodikaProvider} from "../metodika/MetodikaContext";
 import UserMenu from "../auth/UserMenu";
 import {MetodikaTermsProvider} from "../metodika/MetodikaTermsContext";
 import Prikaz from "../prikazy/Prikaz";
+import HlaseniPrikazu from "../prikazy/HlaseniPrikazu";
 import Profil from "../user/Profil";
 import MetodikaTerm from "../metodika/MetodikaTerm";
 
@@ -160,6 +166,7 @@ const App: React.FC = () => {
 					<Route path="/profil" element={<Profil/>}/>
 					<Route path="/prikazy" element={<Prikazy/>}/>
 					<Route path="/prikaz/:id" element={<Prikaz/>}/>
+					<Route path="/prikaz/:id/hlaseni" element={<HlaseniPrikazu/>}/>
 					<Route path="/metodika/*" element={
 						<MetodikaTermsProvider>
 							<Routes>

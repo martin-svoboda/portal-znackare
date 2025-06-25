@@ -1,9 +1,9 @@
 import React, {useEffect, useState} from "react";
 import {MapContainer, TileLayer, Marker, Polyline, useMap, Popup} from "react-leaflet";
-import {Box, Button, Flex, Group, Loader, Text, Title} from "@mantine/core";
+import {Alert, Box, Button, Flex, Group, Loader, Text, Title} from "@mantine/core";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import {IconMapShare} from "@tabler/icons-react";
+import {IconAlertTriangleFilled, IconMapShare} from "@tabler/icons-react";
 
 // Mapy.cz API klíč
 const MAPY_API_KEY = "67fA8acT3ISVkTZEz3CYnTiXVo32Xvh1k1obif0B3d4";
@@ -141,6 +141,8 @@ export function MapaTrasy({body, route}) {
 		: [49.8, 14.8];
 	const height = window.innerWidth > 768 ? 500 : 350;
 
+	const alertIcon = <IconAlertTriangleFilled />;
+
 	return (
 		<Box style={{minHeight: height, width: "100%", position: "relative"}}>
 			<Group justify="space-between" mb="sm">
@@ -223,6 +225,9 @@ export function MapaTrasy({body, route}) {
 				)}
 				<FitBounds points={validPoints}/>
 			</MapContainer>
+			<Alert variant="light" color="yellow" icon={alertIcon}>
+				Mapa je pouze orientační a nemusí zcela souhlasit s trasou. Vždy dbejte na strávné umístění trasy i prvků.
+			</Alert>
 			{error && <Text c="red">{error}</Text>}
 			{invalidPoints.length > 0 && (
 				<Box mb="sm">

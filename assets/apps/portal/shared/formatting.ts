@@ -1,9 +1,27 @@
-export function formatKm(km?: string | null): string {
+export function formatKm(km?: string | number | null): string {
 	if (!km || isNaN(Number(km))) return "";
-	return parseFloat(km).toLocaleString("cs-CZ", {
+	return parseFloat(km.toString()).toLocaleString("cs-CZ", {
 		minimumFractionDigits: 0,
 		maximumFractionDigits: 3,
 	});
+}
+
+export function formatCurrency(amount: number): string {
+	return amount.toLocaleString("cs-CZ", {
+		style: "currency",
+		currency: "CZK",
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 2,
+	});
+}
+
+export function formatTime(time: string): string {
+	if (!time) return "";
+	// Pokud je čas ve formátu HH:MM, vrátíme jak je
+	if (/^\d{1,2}:\d{2}$/.test(time)) return time;
+	// Pokud je ve formátu H:MM, přidáme nulu
+	if (/^\d:\d{2}$/.test(time)) return `0${time}`;
+	return time;
 }
 
 export function getHeadingsFromHtml(html: string) {
