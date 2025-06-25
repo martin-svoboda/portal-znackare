@@ -34,8 +34,9 @@ import MapaTrasy from "../components/MapaTrasy";
 import {PrikazStavBadge} from "./PrikazStavBadge";
 import {PrikazTypeIcon} from "./PrikazTypeIcon";
 import RequireLogin from "../auth/RequireLogin";
-import {formatKm} from "../shared/formatting";
+import {formatKm, formatUsekType, formatTimStatus} from "../shared/formatting";
 import {PrikazHead} from "./components/PrikazHead";
+import {replaceTextWithIcons} from "../shared/textIconReplacer";
 
 function groupByEvCiTIM(rows: any[]) {
 	const groups: Record<string, any> = {};
@@ -69,9 +70,10 @@ const PrikazUseky = ({useky}: { useky: any[] }) => {
 	const rows = useky.map((usek) => (
 		<Table.Tr key={usek.Kod_ZU}>
 			<Table.Td><Znacka color={usek.Barva_Naz} size={30}/></Table.Td>
-			<Table.Td>{usek.Kod_ZU}</Table.Td>
-			<Table.Td>{usek.Nazev_ZU}</Table.Td>
-			<Table.Td>{formatKm(usek.Delka_ZU)}</Table.Td>
+			<Table.Td>{replaceTextWithIcons(usek.Nazev_ZU, 14)}</Table.Td>
+			<Table.Td>{formatKm(usek.Delka_ZU)} Km</Table.Td>
+			<Table.Td><Badge autoContrast color={barvaDleJmena(usek.Barva_Naz)}>{usek.Barva_Naz}</Badge></Table.Td>
+			<Table.Td>{formatUsekType(usek.UsekZP_Typ)}</Table.Td>
 		</Table.Tr>
 	));
 
@@ -81,9 +83,10 @@ const PrikazUseky = ({useky}: { useky: any[] }) => {
 				<Table.Thead>
 					<Table.Tr>
 						<Table.Th></Table.Th>
-						<Table.Th>Kód</Table.Th>
 						<Table.Th>Název úseku</Table.Th>
 						<Table.Th>Délka</Table.Th>
+						<Table.Th>Barva</Table.Th>
+						<Table.Th>Typ</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>{rows}</Table.Tbody>
@@ -182,9 +185,19 @@ const Prikaz = () => {
 				accessorKey: 'Naz_TIM',
 				header: 'Místo',
 				size: 100,
+				Cell: ({row}) => {
+					return replaceTextWithIcons(row.original.Naz_TIM, 14)
+				}
 			},
 			{accessorKey: "NP", header: "Montáž", size: 100},
-			{accessorKey: "Stav_TIM", header: "Stav", size: 40},
+			{
+				accessorKey: "Stav_TIM", 
+				header: "Stav", 
+				size: 40,
+				Cell: ({row}) => {
+					return formatTimStatus(row.original.Stav_TIM)
+				}
+			},
 		],
 		[]
 	);
@@ -237,7 +250,7 @@ const Prikaz = () => {
 		renderDetailPanel: ({row}) => (
 			<>
 				<Text size="sm" c="dimmed" hiddenFrom="sm">Montáž: {row.original.NP}</Text>
-				<Text size="sm" c="dimmed" hiddenFrom="sm">Stav: {row.original.Stav_TIM}</Text>
+				<Text size="sm" c="dimmed" hiddenFrom="sm">Stav: {formatTimStatus(row.original.Stav_TIM)}</Text>
 				<Stack gap="sm">
 					{row.original.items?.map((item: any, i: number) => {
 
@@ -254,7 +267,7 @@ const Prikaz = () => {
 										<Box>
 											<Text fw={700}>{item.Druh_Predmetu_Naz}</Text>
 											{item.Smerovani && (
-												<Text size="xs" c="dimmed">
+												<Text size="sm" c="dimmed">
 													{item.Smerovani === 'P' ? 'Pravá' : item.Smerovani === 'L' ? 'Levá' : item.Smerovani}
 												</Text>
 											)}
@@ -266,8 +279,8 @@ const Prikaz = () => {
 											)}
 										</Box>
 										<Box>
-											<Text size="xs" c="dimmed">{item.Druh_Presunu}</Text>
-											<Text size="xs">ID: {item.EvCi_TIM + item.Premet_Index}</Text>
+											<Text size="sm" c="dimmed">{item.Druh_Presunu}</Text>
+											<Text size="sm">ID: {item.EvCi_TIM + item.Premet_Index}</Text>
 										</Box>
 									</Flex>
 								</Flex>

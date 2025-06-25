@@ -67,3 +67,39 @@ export function addHeadingIdsToHtml(html: string): string {
 		}
 	);
 }
+
+/**
+ * Převede kód typu úseku na čitelný název
+ * @param code - Kód typu úseku ("U", "O" nebo jiný)
+ * @returns Textové označení typu úseku
+ */
+export function formatUsekType(code?: string | null): string {
+	if (!code) return "";
+	
+	switch (code.toUpperCase()) {
+		case "U":
+			return "Úsek";
+		case "O":
+			return "Odbočka";
+		default:
+			return code;
+	}
+}
+
+/**
+ * Převede kód stavu TIM na čitelný název
+ * @param code - Kód stavu TIM ("R", "P" nebo jiný)
+ * @returns Textové označení stavu TIM
+ */
+export function formatTimStatus(code?: string | null): string {
+	if (!code) return "";
+	
+	switch (code.toUpperCase()) {
+		case "R":
+			return "Realizováno";
+		case "P":
+			return "Příprava";
+		default:
+			return code;
+	}
+}

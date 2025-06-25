@@ -226,7 +226,7 @@ export function MapaTrasy({body, route}) {
 				<FitBounds points={validPoints}/>
 			</MapContainer>
 			<Alert variant="light" color="yellow" icon={alertIcon}>
-				Mapa je pouze orientační a nemusí zcela souhlasit s trasou. Vždy dbejte na strávné umístění trasy i prvků.
+				Mapa je pouze orientační a nemusí zcela souhlasit s trasou (hledá nejkratší cestu mezi dostupnými TIM). Vždy dbejte na strávné umístění trasy i prvků.
 			</Alert>
 			{error && <Text c="red">{error}</Text>}
 			{invalidPoints.length > 0 && (

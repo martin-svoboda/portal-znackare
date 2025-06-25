@@ -39,7 +39,7 @@ export const PrikazHead: React.FC<PrikazHeadProps> = ({head, delka, simple = fal
 			<Stack gap="xs">
 				<Text c="dimmed" fz="sm">{head.Druh_ZP_Naz}</Text>
 				{delka &&
-					<Text size="sm">Dékla: <b>{formatKm(delka)}</b></Text>
+					<Text size="sm">Dékla: <b>{formatKm(delka)} Km</b></Text>
 				}
 				<PrikazStavBadge stav={head.Stav_ZP_Naz}/>
 			</Stack>

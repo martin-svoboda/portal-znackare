@@ -38,6 +38,7 @@ import {
 import {BreadcrumbsNav} from "../shared/BreadcrumbsNav";
 import {PrikazStavBadge} from "./PrikazStavBadge";
 import {PrikazTypeIcon} from "./PrikazTypeIcon";
+import {replaceTextWithIcons} from "../shared/textIconReplacer";
 
 const getAvailableYears = () => {
 	const currentYear = new Date().getFullYear();
@@ -105,17 +106,6 @@ const ProtectedContent = () => {
 		() => [
 			{accessorKey: 'Cislo_ZP', header: 'Číslo ZP', size: 100},
 			{
-				accessorKey: 'Stav_ZP_Naz',
-				header: 'Stav',
-				size: 150,
-				filterVariant: 'select',
-				Cell: ({row}) => {
-					return (
-						<PrikazStavBadge stav={row.original.Stav_ZP_Naz}/>
-					);
-				},
-			},
-			{
 				accessorKey: 'Druh_ZP_Naz',
 				header: 'Druh ZP',
 				size: 120,
@@ -134,7 +124,25 @@ const ProtectedContent = () => {
 					);
 				},
 			},
-			{accessorKey: 'Popis_ZP', header: 'Popis', size: 300},
+			{
+				accessorKey: 'Popis_ZP',
+				header: 'Popis',
+				size: 300,
+				Cell: ({row}) => {
+					return replaceTextWithIcons(row.original.Popis_ZP, 14)
+				}
+			},
+			{
+				accessorKey: 'Stav_ZP_Naz',
+				header: 'Stav',
+				size: 150,
+				filterVariant: 'select',
+				Cell: ({row}) => {
+					return (
+						<PrikazStavBadge stav={row.original.Stav_ZP_Naz}/>
+					);
+				},
+			},
 			{accessorKey: 'Znackar', header: 'Značkař', size: 100, filterVariant: 'autocomplete'},
 			{
 				accessorKey: 'Je_Vedouci',
