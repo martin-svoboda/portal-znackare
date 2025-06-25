@@ -1,4 +1,15 @@
 import React, {useEffect, useState, useMemo} from "react";
+
+// Deklarace typu pro window objekt
+declare global {
+	interface Window {
+		kct_portal?: {
+			bloginfo?: {
+				name?: string;
+			};
+		};
+	}
+}
 import {
 	Container,
 	Title,
@@ -14,7 +25,7 @@ import {
 	Flex,
 	Table, Button
 } from "@mantine/core";
-import {IconCrown} from "@tabler/icons-react";
+import {IconPrinter} from "@tabler/icons-react";
 import {useParams, useNavigate} from "react-router-dom";
 import {apiRequest} from "../shared/api";
 import {notifications} from "@mantine/notifications";
@@ -37,6 +48,8 @@ import RequireLogin from "../auth/RequireLogin";
 import {formatKm, formatUsekType, formatTimStatus} from "../shared/formatting";
 import {PrikazHead} from "./components/PrikazHead";
 import {replaceTextWithIcons} from "../shared/textIconReplacer";
+import PrintablePrikaz from "./components/PrintablePrikaz";
+import {usePdfGenerator} from "./hooks/usePdfGenerator";
 
 function groupByEvCiTIM(rows: any[]) {
 	const groups: Record<string, any> = {};
@@ -100,11 +113,13 @@ const Prikaz = () => {
 	const {getIntAdr} = useAuth();
 	const intAdr = getIntAdr();
 	const navigate = useNavigate();
+	const { generatePDF, isGenerating } = usePdfGenerator();
 
 	const [head, setHead] = useState<any>(null);
 	const [predmety, setPredmety] = useState<any[]>([]);
 	const [useky, setUseky] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [showPrintPreview, setShowPrintPreview] = useState(false);
 
 	useEffect(() => {
 		setLoading(true);
@@ -214,6 +229,11 @@ const Prikaz = () => {
 		});
 	};
 
+	const handlePrintPDF = async () => {
+		const filename = `prikaz_${head?.Cislo_ZP || id}_kontrolni_formular.pdf`;
+		await generatePDF('printable-prikaz', filename);
+	};
+
 	const table = useMantineReactTable({
 		columns,
 		data: groupedData,
@@ -231,7 +251,7 @@ const Prikaz = () => {
 		localization: MRT_Localization_CS,
 		initialState: {
 			density: 'xs',
-			expanded: false,
+			expanded: {},
 			columnVisibility: {
 				NP: window.innerWidth > 768,
 				Stav_TIM: window.innerWidth > 768,
@@ -309,14 +329,30 @@ const Prikaz = () => {
 						<PrikazHead head={head} delka={delka}/>
 					)}
 				</Card>
-				{head && head.Stav_ZP_Naz && isNezpracovany(head.Stav_ZP_Naz) &&
-					<Button
-						color="blue"
-						onClick={handleHlaseni}
-					>
-						Podat hlášení
-					</Button>
-				}
+				{head && head.Stav_ZP_Naz && isNezpracovany(head.Stav_ZP_Naz) && (
+					<Group>
+						<Button
+							color="blue"
+							onClick={handleHlaseni}
+						>
+							Podat hlášení
+						</Button>
+						<Button
+							variant="outline"
+							leftSection={<IconPrinter size={16} />}
+							onClick={handlePrintPDF}
+							loading={isGenerating}
+						>
+							Kontrolní formulář PDF
+						</Button>
+						<Button
+							variant="outline"
+							onClick={() => setShowPrintPreview(!showPrintPreview)}
+						>
+							{showPrintPreview ? 'Skrýt náhled' : 'Zobrazit náhled formuláře'}
+						</Button>
+					</Group>
+				)}
 				{(useky.length > 0 || soubeh.length > 1) &&
 					<Card shadow="sm" padding="sm" mb="xl">
 						<Title order={3} mb="sm">Úseky tras k obnově</Title>
@@ -329,8 +365,8 @@ const Prikaz = () => {
 									<Text fw={700} fz="md">
 										Možný souběh/křížení tras:
 									</Text>
-									{soubeh.map((row, i) => (
-										<Znacka size={30} move={row.Druh_Presunu} color={row.Barva}/>
+									{soubeh.map((row, index) => (
+										<Znacka key={index} size={30} move={row.Druh_Presunu} color={row.Barva}/>
 									))}
 								</Group>
 							</>
@@ -348,6 +384,47 @@ const Prikaz = () => {
 						<MapaTrasy body={mapPoints} route={mapRoute}/>
 					)}
 				</Card>
+
+				{/* Podmíněný náhled formuláře */}
+				{showPrintPreview && (
+					<Card shadow="sm" mb="xl">
+						<Title order={3} mb="md">Náhled kontrolního formuláře</Title>
+						<Box style={{ 
+							border: '2px solid #e9ecef', 
+							borderRadius: '8px', 
+							overflow: 'auto',
+							maxHeight: '80vh'
+						}}>
+							<PrintablePrikaz
+								head={head}
+								predmety={predmety}
+								useky={useky}
+								delka={delka}
+								groupedData={groupedData}
+							/>
+						</Box>
+					</Card>
+				)}
+
+				{/* Skrytá printovací komponenta */}
+				<div 
+					id="printable-prikaz" 
+					style={{ 
+						position: 'absolute', 
+						left: '-9999px', 
+						top: '-9999px',
+						width: '210mm', // A4 šířka
+						backgroundColor: 'white'
+					}}
+				>
+					<PrintablePrikaz
+						head={head}
+						predmety={predmety}
+						useky={useky}
+						delka={delka}
+						groupedData={groupedData}
+					/>
+				</div>
 			</Container>
 		</RequireLogin>
 	);

@@ -37,6 +37,8 @@
 		"@tanstack/react-query": "^5.76.0",
 		"clsx": "^2.1.1",
 		"dayjs": "^1.11.13",
+		"html2canvas": "^1.4.1",
+		"jspdf": "^3.0.1",
 		"leaflet": "^1.9.4",
 		"mantine-react-table": "^2.0.0-beta.9",
 		"react-helmet-async": "^2.0.5",

@@ -50,10 +50,10 @@ const iconMap: Record<string, (size: number) => React.ReactElement> = {
 /**
  * Nahradí textové značky začínající & příslušnými ikonami
  * @param text - Vstupní text obsahující značky ve formátu &TAG nebo &TAG1,TAG2,TAG3
- * @param iconSize - Velikost ikon (výchozí 16)
+ * @param iconSize - Velikost ikon (výchozí 10)
  * @returns React fragment s textem a ikonami
  */
-export const replaceTextWithIcons = (text: string, iconSize: number = 16): React.ReactNode => {
+export const replaceTextWithIcons = (text: string, iconSize: number = 10): React.ReactNode => {
 	if (!text) return text;
 
 	// Najdi všechny výskyty &NĚCO nebo &NĚCO,NĚCO2,NĚCO3
