@@ -1,15 +1,5 @@
 import React, {useEffect, useState, useMemo} from "react";
 
-// Deklarace typu pro window objekt
-declare global {
-	interface Window {
-		kct_portal?: {
-			bloginfo?: {
-				name?: string;
-			};
-		};
-	}
-}
 import {
 	Container,
 	Title,
@@ -206,8 +196,8 @@ const Prikaz = () => {
 			},
 			{accessorKey: "NP", header: "Montáž", size: 100},
 			{
-				accessorKey: "Stav_TIM", 
-				header: "Stav", 
+				accessorKey: "Stav_TIM",
+				header: "Stav",
 				size: 40,
 				Cell: ({row}) => {
 					return formatTimStatus(row.original.Stav_TIM)
@@ -316,7 +306,7 @@ const Prikaz = () => {
 		<RequireLogin>
 			<Container size="lg" px={0} my="md">
 				<Helmet>
-					<title>{`Příkaz ${head?.Cislo_ZP || id || ''} | ${window.kct_portal?.bloginfo?.name || 'Portal'}`}</title>
+					<title>{`Příkaz ${head?.Cislo_ZP || id || ''} | ${(window as any).kct_portal?.bloginfo?.name || 'Portal'}`}</title>
 				</Helmet>
 				<BreadcrumbsNav items={breadcrumb}/>
 				<Title mb="xl" order={2}>
@@ -345,12 +335,14 @@ const Prikaz = () => {
 						>
 							Kontrolní formulář PDF
 						</Button>
-						<Button
-							variant="outline"
-							onClick={() => setShowPrintPreview(!showPrintPreview)}
-						>
-							{showPrintPreview ? 'Skrýt náhled' : 'Zobrazit náhled formuláře'}
-						</Button>
+						{(window as any).kct_portal?.is_admin && (
+							<Button
+								variant="outline"
+								onClick={() => setShowPrintPreview(!showPrintPreview)}
+							>
+								{showPrintPreview ? 'Skrýt náhled' : 'Zobrazit náhled formuláře'}
+							</Button>
+						)}
 					</Group>
 				)}
 				{(useky.length > 0 || soubeh.length > 1) &&
@@ -389,9 +381,9 @@ const Prikaz = () => {
 				{showPrintPreview && (
 					<Card shadow="sm" mb="xl">
 						<Title order={3} mb="md">Náhled kontrolního formuláře</Title>
-						<Box style={{ 
-							border: '2px solid #e9ecef', 
-							borderRadius: '8px', 
+						<Box style={{
+							border: '2px solid #e9ecef',
+							borderRadius: '8px',
 							overflow: 'auto',
 							maxHeight: '80vh'
 						}}>
@@ -407,11 +399,11 @@ const Prikaz = () => {
 				)}
 
 				{/* Skrytá printovací komponenta */}
-				<div 
-					id="printable-prikaz" 
-					style={{ 
-						position: 'absolute', 
-						left: '-9999px', 
+				<div
+					id="printable-prikaz"
+					style={{
+						position: 'absolute',
+						left: '-9999px',
 						top: '-9999px',
 						width: '210mm', // A4 šířka
 						backgroundColor: 'white'

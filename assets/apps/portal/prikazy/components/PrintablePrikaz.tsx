@@ -52,7 +52,6 @@ const PrintablePrikaz: React.FC<PrintablePrikazProps> = ({
 	);
 
 
-
 	return (
 		<div style={printContainerStyle} data-color-scheme="light">
 			{/* Hlavička s původní PrikazHead komponentou - bez stavu, kraje a obvodu */}
@@ -79,32 +78,32 @@ const PrintablePrikaz: React.FC<PrintablePrikazProps> = ({
 			{useky.length > 0 && (
 				<Box mb="sm" className="useky-section">
 
-						{useky.map((usek, index) => (
-							<Flex key={usek.Kod_ZU}
-								  align="center"
-								  gap="md"
-								  p="xs"
-								  style={{
-									  borderBottom: index < useky.length - 1 ? '1px solid #eee' : 'none'
-								  }}
+					{useky.map((usek, index) => (
+						<Flex key={usek.Kod_ZU}
+							  align="center"
+							  gap="md"
+							  p="xs"
+							  style={{
+								  borderBottom: index < useky.length - 1 ? '1px solid #eee' : 'none'
+							  }}
+						>
+							<Znacka color={usek.Barva_Naz} size={30}/>
+							<Box flex={1}>
+								<Text size="sm" fw={500} c="black">
+									{replaceTextWithIcons(usek.Nazev_ZU, 12)}
+								</Text>
+							</Box>
+							<Text size="sm" c="black">{formatUsekType(usek.UsekZP_Typ)}</Text>
+							<Text size="sm" c="black">{formatKm(usek.Delka_ZU)} km</Text>
+							<Badge
+								color={barvaDleJmena(usek.Barva_Naz)}
+								variant="light"
+								style={{backgroundColor: barvaDleJmena(usek.Barva_Naz), color: 'white'}}
 							>
-								<Znacka color={usek.Barva_Naz} size={30}/>
-								<Box flex={1}>
-									<Text size="sm" fw={500} c="black">
-										{replaceTextWithIcons(usek.Nazev_ZU, 12)}
-									</Text>
-								</Box>
-								<Text size="sm" c="black">{formatUsekType(usek.UsekZP_Typ)}</Text>
-								<Text size="sm" c="black">{formatKm(usek.Delka_ZU)} km</Text>
-								<Badge
-									color={barvaDleJmena(usek.Barva_Naz)}
-									variant="light"
-									style={{backgroundColor: barvaDleJmena(usek.Barva_Naz), color: 'white'}}
-								>
-									{usek.Barva_Naz}
-								</Badge>
-							</Flex>
-						))}
+								{usek.Barva_Naz}
+							</Badge>
+						</Flex>
+					))}
 				</Box>
 			)}
 
@@ -122,53 +121,49 @@ const PrintablePrikaz: React.FC<PrintablePrikazProps> = ({
 					<thead>
 					<tr style={{backgroundColor: '#f5f5f5'}}>
 						{/* Levý sloupec hlavička */}
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '80px'}} rowSpan="2">
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '155px'}}
+							rowSpan="2">
 							Náhled TIM
 						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold'}}>
-							Číslo TIM
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '70px'}}>
+							Číslo / Barva
 						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '50px'}}>
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '70px'}}>
 							Rok
 						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '40px'}}>
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '30px'}}>
 							L/P
 						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '50px'}}>
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '30px'}}>
 							Stav
 						</th>
 
 						{/* Pravý sloupec hlavička */}
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '80px'}} rowSpan="2">
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '155px'}}
+							rowSpan="2">
 							Náhled TIM
 						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold'}}>
-							Číslo TIM
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '70px'}}>
+							Číslo / Barva
 						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '50px'}}>
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '70px'}}>
 							Rok
 						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '40px'}}>
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '30px'}}>
 							L/P
 						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '50px'}}>
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold', width: '30px'}}>
 							Stav
 						</th>
 					</tr>
 					<tr style={{backgroundColor: '#f5f5f5'}}>
 						{/* Levý sloupec druhý řádek hlavičky */}
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold'}}>
-							Barva
-						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold'}} colSpan="3">
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold'}} colSpan="4">
 							Poznámka
 						</th>
 
 						{/* Pravý sloupec druhý řádek hlavičky */}
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold'}}>
-							Barva
-						</th>
-						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold'}} colSpan="3">
+						<th style={{border: '1px solid #333', padding: '6px', fontWeight: 'bold'}} colSpan="4">
 							Poznámka
 						</th>
 					</tr>
@@ -200,22 +195,23 @@ const PrintablePrikaz: React.FC<PrintablePrikazProps> = ({
 const TimTableRowTwoColumns: React.FC<{ leftItem: any; rightItem?: any }> = ({leftItem, rightItem}) => {
 	const cellStyle = {
 		border: '1px solid #333',
-		padding: '6px',
+		padding: '4px',
 		verticalAlign: 'top' as const,
-		fontSize: '10px'
+		fontSize: '10px',
+		height: '32px',
+		lineHeight: '1',
 	};
 
 	const inputCellStyle = {
 		...cellStyle,
 		backgroundColor: '#fafafa',
-		minHeight: '18px'
 	};
 
 	const timCellStyle = {
 		...cellStyle,
-		width: '80px',
-		height: '80px', // Zvětšíme výšku aby se náhled vešel přes 2 řádky
-		padding: '3px'
+		width: '155px',
+		height: '64px',
+		padding: '1px'
 	};
 
 	return (
@@ -224,12 +220,26 @@ const TimTableRowTwoColumns: React.FC<{ leftItem: any; rightItem?: any }> = ({le
 			<tr>
 				{/* Levý sloupec */}
 				<td style={timCellStyle} rowSpan={2}>
-					<div style={{transform: 'scale(0.8)', transformOrigin: 'center', width: '74px', height: '74px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
-						<NahledTim item={leftItem}/>
+					<div style={{
+						width: '150px',
+						height: '60px',
+						display: 'flex',
+						alignItems: 'center',
+						justifyContent: 'center',
+						overflow: 'hidden'
+					}}>
+						<div style={{
+							transform: 'scale(0.6)',
+							transformOrigin: 'center',
+							width: '250px',
+							height: '90px'
+						}}>
+							<NahledTim item={leftItem}/>
+						</div>
 					</div>
 				</td>
 				<td style={cellStyle}>
-					{leftItem.groupInfo.EvCi_TIM + leftItem.Premet_Index}
+					<strong>{leftItem.groupInfo.EvCi_TIM + leftItem.Premet_Index}</strong><br/>{leftItem.Barva}
 				</td>
 				<td style={inputCellStyle}></td>
 				<td style={inputCellStyle}></td>
@@ -239,12 +249,26 @@ const TimTableRowTwoColumns: React.FC<{ leftItem: any; rightItem?: any }> = ({le
 				{rightItem ? (
 					<>
 						<td style={timCellStyle} rowSpan={2}>
-							<div style={{transform: 'scale(0.8)', transformOrigin: 'center', width: '74px', height: '74px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
-								<NahledTim item={rightItem}/>
+							<div style={{
+								width: '150px',
+								height: '60px',
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								overflow: 'hidden'
+							}}>
+								<div style={{
+									transform: 'scale(0.6)',
+									transformOrigin: 'center',
+									width: '250px',
+									height: '90px'
+								}}>
+									<NahledTim item={rightItem}/>
+								</div>
 							</div>
 						</td>
 						<td style={cellStyle}>
-							{rightItem.groupInfo.EvCi_TIM + rightItem.Premet_Index}
+							<strong>{rightItem.groupInfo.EvCi_TIM + rightItem.Premet_Index}</strong><br/>{rightItem.Barva}
 						</td>
 						<td style={inputCellStyle}></td>
 						<td style={inputCellStyle}></td>
@@ -262,27 +286,20 @@ const TimTableRowTwoColumns: React.FC<{ leftItem: any; rightItem?: any }> = ({le
 				)}
 			</tr>
 
-			{/* Druhý řádek - barva a poznámka */}
+			{/* Druhý řádek poznámka */}
 			<tr>
 				{/* Levý sloupec */}
-				<td style={cellStyle}>
-					{leftItem.Barva}
-				</td>
-				<td style={{...inputCellStyle, minHeight: '30px'}} colSpan={3}></td>
+				<td style={{...inputCellStyle, minHeight: '30px'}} colSpan={4}></td>
 
 				{/* Pravý sloupec */}
 				{rightItem ? (
 					<>
-						<td style={cellStyle}>
-							{rightItem.Barva}
-						</td>
-						<td style={{...inputCellStyle, minHeight: '30px'}} colSpan={3}></td>
+						<td style={{...inputCellStyle, minHeight: '30px'}} colSpan={4}></td>
 					</>
 				) : (
 					// Prázdné buňky když není pravý prvek
 					<>
-						<td style={cellStyle}></td>
-						<td style={{...inputCellStyle, minHeight: '30px'}} colSpan={3}></td>
+						<td style={{...inputCellStyle, minHeight: '30px'}} colSpan={4}></td>
 					</>
 				)}
 			</tr>
