@@ -369,13 +369,15 @@ const Prikaz = () => {
 					<Title order={3} mb="sm">Informační místa na trase</Title>
 					<MantineReactTable table={table}/>
 				</Card>
-				<Card shadow="sm" mb="xl">
-					{loading ? (
-						<Loader/>
-					) : (
-						<MapaTrasy body={mapPoints} route={mapRoute}/>
-					)}
-				</Card>
+				{mapPoints.length > 0 && (
+					<Card shadow="sm" mb="xl">
+						{loading ? (
+							<Loader/>
+						) : (
+							<MapaTrasy body={mapPoints} route={mapRoute}/>
+						)}
+					</Card>
+				)}
 
 				{/* Podmíněný náhled formuláře */}
 				{showPrintPreview && (

@@ -141,109 +141,114 @@ export function MapaTrasy({body, route}) {
 		: [49.8, 14.8];
 	const height = window.innerWidth > 768 ? 500 : 350;
 
-	const alertIcon = <IconAlertTriangleFilled />;
+	const alertIcon = <IconAlertTriangleFilled/>;
 
+// TODO: cyklomapu a cyklohledání při CZT a zimní mapu a s ližařským přesunem pro LZT
 	return (
 		<Box style={{minHeight: height, width: "100%", position: "relative"}}>
 			<Group justify="space-between" mb="sm">
-					<Title order={3}>Mapa trasy</Title>
-					{!loading && route && validPoints.length >= 2 && (
-						<Button
-							leftSection={<IconMapShare size={14} />}
-							component="a"
-							target="_blank"
-							href={getMapyCzRouteUrl(validPoints)}
-							color="green"
-							variant="outline"
-							size="sm"
-						>
-							Mapy.cz
-						</Button>
-					)}
+				<Title order={3}>Mapa trasy</Title>
+				{!loading && route && validPoints.length >= 2 && (
+					<Button
+						leftSection={<IconMapShare size={14}/>}
+						component="a"
+						target="_blank"
+						href={getMapyCzRouteUrl(validPoints)}
+						color="green"
+						variant="outline"
+						size="sm"
+					>
+						Mapy.cz
+					</Button>
+				)}
 			</Group>
 			{loading && <Loader/>}
-			<MapContainer
-				style={{height: height, width: "100%", zIndex: 1}}
-				center={center}
-				zoom={13}
-				scrollWheelZoom={false}
-			>
-				<TileLayer
-					url={`https://api.mapy.cz/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=${MAPY_API_KEY}`}
-					attribution='Mapové podklady © <a href="https://www.seznam.cz/">Seznam.cz, a.s.</a> a další'
-				/>
-				{validPoints.map((point, i) => (
-					<Marker
-						key={"valid" + i}
-						position={[point.lat, point.lon]}
-						icon={signIcon}
+			{validPoints.length > 0 && (
+				<>
+					<MapContainer
+						style={{height: height, width: "100%", zIndex: 1}}
+						center={center}
+						zoom={13}
+						scrollWheelZoom={false}
 					>
-						<Popup>
-							{point.content}
-							<Button
-								leftSection={<IconMapShare size={14} />}
-								component="a"
-								target="_blank"
-								href={getMapyCzShowMapUrl(point.lon, point.lat)}
-								color="green"
-								variant="outline"
-								size="compact-xs"
+						<TileLayer
+							url={`https://api.mapy.cz/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=${MAPY_API_KEY}`}
+							attribution='Mapové podklady © <a href="https://www.seznam.cz/">Seznam.cz, a.s.</a> a další'
+						/>
+						{validPoints.map((point, i) => (
+							<Marker
+								key={"valid" + i}
+								position={[point.lat, point.lon]}
+								icon={signIcon}
 							>
-								Mapy.cz
-							</Button>
-						</Popup>
-					</Marker>
-				))}
-				{invalidPoints.map((point, i) => (
-					<Marker
-						key={"invalid" + i}
-						position={[
-							typeof point.lat === "number" ? point.lat : 0,
-							typeof point.lon === "number" ? point.lon : 0
-						]}
-						icon={signIconInvalid}
-					>
-						<Popup>
-							<p color="red">Neplatný bod:</p>
-							{point.content}
-							<Button
-								leftSection={<IconMapShare size={14} />}
-								component="a"
-								target="_blank"
-								href={getMapyCzShowMapUrl(point.lon, point.lat)}
-								color="green"
-								variant="outline"
-								size="compact-xs"
+								<Popup>
+									{point.content}
+									<Button
+										leftSection={<IconMapShare size={14}/>}
+										component="a"
+										target="_blank"
+										href={getMapyCzShowMapUrl(point.lon, point.lat)}
+										color="green"
+										variant="outline"
+										size="compact-xs"
+									>
+										Mapy.cz
+									</Button>
+								</Popup>
+							</Marker>
+						))}
+						{invalidPoints.map((point, i) => (
+							<Marker
+								key={"invalid" + i}
+								position={[
+									typeof point.lat === "number" ? point.lat : 0,
+									typeof point.lon === "number" ? point.lon : 0
+								]}
+								icon={signIconInvalid}
 							>
-								Mapy.cz
-							</Button>
-						</Popup>
-					</Marker>
-				))}
-				{route && routeCoords.length > 1 && (
-					<Polyline positions={routeCoords} color="#2266cc" weight={5}/>
-				)}
-				<FitBounds points={validPoints}/>
-			</MapContainer>
-			<Alert variant="light" color="yellow" icon={alertIcon}>
-				Mapa je pouze orientační a nemusí zcela souhlasit s trasou (hledá nejkratší cestu mezi dostupnými TIM). Vždy dbejte na strávné umístění trasy i prvků.
-			</Alert>
-			{error && <Text c="red">{error}</Text>}
+								<Popup>
+									<p color="red">Neplatný bod:</p>
+									{point.content}
+									<Button
+										leftSection={<IconMapShare size={14}/>}
+										component="a"
+										target="_blank"
+										href={getMapyCzShowMapUrl(point.lon, point.lat)}
+										color="green"
+										variant="outline"
+										size="compact-xs"
+									>
+										Mapy.cz
+									</Button>
+								</Popup>
+							</Marker>
+						))}
+						{route && routeCoords.length > 1 && (
+							<Polyline positions={routeCoords} color="#2266cc" weight={5}/>
+						)}
+						<FitBounds points={validPoints}/>
+					</MapContainer>
+					<Alert variant="light" color="yellow" icon={alertIcon}>
+						Mapa je pouze orientační a nemusí zcela souhlasit s trasou (hledá nejkratší cestu mezi
+						dostupnými TIM). Vždy dbejte na strávné umístění trasy i prvků.
+					</Alert>
+				</>
+			)}
+			{error && <Alert variant="light" color="red" icon={alertIcon}> {error} </Alert>}
 			{invalidPoints.length > 0 && (
-				<Box mb="sm">
-					<Text c="red" fw={700} mb={4}>Body s neplatnými souřadnicemi:</Text>
-					<Group wrap="wrap">
+				<Alert variant="light" color="red" title="Body s neplatnými souřadnicemi" icon={alertIcon}>
+					<ul>
 						{invalidPoints.map((point, idx) => (
-							<Box key={idx} mb={2} style={{background: "#fee", padding: 8, borderRadius: 4}}>
+							<li key={idx}>
 								{point.content || (
 									<Text size="sm">
 										{JSON.stringify(point)}
 									</Text>
 								)}
-							</Box>
+							</li>
 						))}
-					</Group>
-				</Box>
+					</ul>
+				</Alert>
 			)}
 		</Box>
 	);
