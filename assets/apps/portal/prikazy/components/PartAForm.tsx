@@ -269,6 +269,7 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 								<Group justify="space-between" mb="sm">
 									<Group>
 										<Icon size={20} />
+										<Icon size={20} />
 										<Text fw={500}>Segment {index + 1}</Text>
 										<Badge variant="light" color="blue">
 											{transportTypeOptions.find(opt => opt.value === segment.transportType)?.label}

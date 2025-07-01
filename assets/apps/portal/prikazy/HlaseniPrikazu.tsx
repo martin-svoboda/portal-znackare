@@ -161,7 +161,7 @@ const HlaseniPrikazu = () => {
 	const isLeader = useMemo(() => {
 		if (!user || !head) return false;
 		return [1, 2, 3].some(i =>
-			head[`Znackar${i}`] === user.name && head[`Je_Vedouci${i}`] === "1"
+			head[`INT_ADR_${i}`] === user.INT_ADR && head[`Je_Vedouci${i}`] === "1"
 		);
 	}, [user, head]);
 

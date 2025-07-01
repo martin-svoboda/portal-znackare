@@ -358,7 +358,7 @@ const Prikaz = () => {
 										Možný souběh/křížení tras:
 									</Text>
 									{soubeh.map((row, index) => (
-										<Znacka key={index} size={30} move={row.Druh_Presunu} color={row.Barva}/>
+										<Znacka size={30} move={row.Druh_Presunu} color={row.Barva}/>
 									))}
 								</Group>
 							</>

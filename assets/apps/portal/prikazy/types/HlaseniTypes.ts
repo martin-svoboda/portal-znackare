@@ -1,3 +1,5 @@
+import {DateValue} from "@mantine/dates";
+
 export interface FileAttachment {
 	id: string;
 	fileName: string;
@@ -48,7 +50,7 @@ export interface AdditionalExpense {
 export interface TimItemStatus {
 	itemId: string;
 	status: 1 | 2 | 3 | 4; // 1-Nová, 2-Zachovalá, 3-Nevyhovující, 4-Zcela chybí
-	yearOfProduction?: number;
+	yearOfProduction?: DateValue;
 	arrowOrientation?: "L" | "P"; // Pro směrovky
 	comment?: string;
 }
@@ -83,16 +85,16 @@ export interface HlaseniFormData {
 	accommodations: Accommodation[];
 	additionalExpenses: AdditionalExpense[];
 	partACompleted: boolean;
-	
+
 	// Část B - Stav TIM (pouze pro ZPO)
 	timReports: Record<string, TimReport>; // Key = EvCi_TIM
 	routeComment: string;
 	routeAttachments?: FileAttachment[];
 	partBCompleted: boolean;
-	
+
 	// Přesměrování výplat
 	paymentRedirects: Record<number, number>; // Key = člen který posílá, Value = člen který dostává
-	
+
 	// Metadata
 	createdAt?: Date;
 	updatedAt?: Date;

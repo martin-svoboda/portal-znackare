@@ -29,11 +29,12 @@ import {
 	IconCheck,
 	IconX,
 	IconAlertTriangle,
-	IconMapPin
+	IconMapPin, iconsList
 } from "@tabler/icons-react";
 import {HlaseniFormData, TimReport, TimItemStatus} from "../types/HlaseniTypes";
 import {FileUploadZone} from "./FileUploadZone";
 import {formatKm} from "../../shared/formatting";
+import {YearPickerInput} from "@mantine/dates";
 
 interface PartBFormProps {
 	formData: HlaseniFormData;
@@ -77,14 +78,14 @@ const groupItemsByTIM = (predmety: any[]) => {
 };
 
 export const PartBForm: React.FC<PartBFormProps> = ({
-	formData,
-	updateFormData,
-	head,
-	useky,
-	predmety,
-	canEdit,
-	onSave
-}) => {
+														formData,
+														updateFormData,
+														head,
+														useky,
+														predmety,
+														canEdit,
+														onSave
+													}) => {
 	const [expandedTims, setExpandedTims] = useState<Set<string>>(new Set());
 
 	const totalLength = useMemo(() => {
@@ -143,18 +144,18 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 	const getTimCompletionStatus = (timId: string) => {
 		const timData = timGroups.find(g => g.EvCi_TIM === timId);
 		const timReport = formData.timReports[timId];
-		
+
 		if (!timData || !timReport) return {completed: false, total: 0, filled: 0};
 
 		const requiredFields = timData.items.length;
 		const filledFields = timReport.itemStatuses.filter(status => {
 			if (!status.status) return false;
 			if (status.status === 3 || status.status === 4) return true; // Nevyhovující/chybí nevyžadují další údaje
-			
+
 			// Pro stavy 1-2 jsou potřeba další údaje
 			const hasYear = status.yearOfProduction && status.yearOfProduction > 0;
 			const hasOrientation = !status.itemId.includes('smerovka') || status.arrowOrientation;
-			
+
 			return hasYear && hasOrientation;
 		}).length;
 
@@ -177,7 +178,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 
 	if (!canEdit) {
 		return (
-			<Alert icon={<IconInfoCircle size={16} />} color="blue">
+			<Alert icon={<IconInfoCircle size={16}/>} color="blue">
 				Pouze vedoucí skupiny může vyplňovat část B - Stav TIM.
 			</Alert>
 		);
@@ -185,38 +186,12 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 
 	return (
 		<Stack gap="md">
-			{/* Záhlaví trasy */}
-			<Card shadow="sm" padding="md">
-				<Title order={4} mb="md">Informace o trase</Title>
-				<Grid>
-					<Grid.Col span={6}>
-						<Text size="sm" c="dimmed">Číslo trasy</Text>
-						<Text fw={500}>{head?.Cislo_ZP}</Text>
-					</Grid.Col>
-					<Grid.Col span={6}>
-						<Text size="sm" c="dimmed">Celková délka úseku</Text>
-						<Text fw={500}>{formatKm(totalLength)}</Text>
-					</Grid.Col>
-				</Grid>
-				
-				{useky.length > 0 && (
-					<Box mt="md">
-						<Text size="sm" c="dimmed" mb="xs">Úseky k obnově:</Text>
-						{useky.map(usek => (
-							<Badge key={usek.Kod_ZU} variant="light" mr="xs" mb="xs">
-								{usek.Kod_ZU} ({formatKm(usek.Delka_ZU)})
-							</Badge>
-						))}
-					</Box>
-				)}
-			</Card>
-
 			{/* TIM stavy */}
 			<Card shadow="sm" padding="md">
 				<Title order={4} mb="md">Stavy TIM</Title>
-				
+
 				{timGroups.length === 0 ? (
-					<Alert icon={<IconInfoCircle size={16} />} color="blue">
+					<Alert icon={<IconInfoCircle size={16}/>} color="blue">
 						Pro tento příkaz nejsou k dispozici žádné TIM k hodnocení.
 					</Alert>
 				) : (
@@ -230,14 +205,14 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 								<Card key={timGroup.EvCi_TIM} withBorder padding="md">
 									<Group justify="space-between" mb="md">
 										<Group>
-											<IconMapPin size={20} />
+											<IconMapPin size={20}/>
 											<Stack gap={0}>
 												<Text fw={500}>{timGroup.Naz_TIM}</Text>
 												<Text size="sm" c="dimmed">TIM {timGroup.EvCi_TIM}</Text>
 											</Stack>
 										</Group>
 										<Group>
-											<Progress 
+											<Progress
 												value={(completion.filled / completion.total) * 100}
 												size="sm"
 												w={100}
@@ -249,7 +224,8 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 											<Button
 												variant="subtle"
 												size="xs"
-												rightSection={isExpanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+												rightSection={isExpanded ? <IconChevronUp size={14}/> :
+													<IconChevronDown size={14}/>}
 												onClick={() => toggleTimExpansion(timGroup.EvCi_TIM)}
 											>
 												{isExpanded ? "Skrýt" : "Rozbalit"}
@@ -265,8 +241,10 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 													Komentář k nosnému prvku
 												</Text>
 												<Text size="xs" c="dimmed" mb="xs">
-													Stav upevnění směrovek a tabulek, např. zarostlá nebo prasklá dřevěná lišta, 
-													silně zkorodovaný nebo uvolněný ocelový upevňovací pás, deformovaný trubkový 
+													Stav upevnění směrovek a tabulek, např. zarostlá nebo prasklá
+													dřevěná lišta,
+													silně zkorodovaný nebo uvolněný ocelový upevňovací pás, deformovaný
+													trubkový
 													držák směrovky, viditelná rez apod.
 												</Text>
 												<Textarea
@@ -316,11 +294,11 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 													}}
 												>
 													<Group>
-														<Radio value="true" label="ANO" />
-														<Radio value="false" label="NE" />
+														<Radio value="true" label="ANO"/>
+														<Radio value="false" label="NE"/>
 													</Group>
 												</Radio.Group>
-												
+
 												{timReport?.centerRuleCompliant === false && (
 													<Textarea
 														placeholder="Komentář k nesplnění středového pravidla..."
@@ -351,23 +329,40 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 													</Table.Thead>
 													<Table.Tbody>
 														{timGroup.items.map((item: any) => {
-															const itemStatus = getItemStatus(timGroup.EvCi_TIM, item.ID_PREDMETY);
+															const itemStatus = getItemStatus(timGroup.EvCi_TIM, item.Premet_Index);
 															const isArrow = item.Druh_Predmetu_Naz?.toLowerCase().includes('směrovka');
 															const needsAdditionalData = itemStatus?.status === 1 || itemStatus?.status === 2;
 
+															console.log(item);
 															return (
-																<Table.Tr key={item.ID_PREDMETY}>
+																<Table.Tr key={item.Premet_Index}>
 																	<Table.Td>
-																		<Stack gap={0}>
-																			<Text size="sm" fw={500}>
-																				{item.Druh_Predmetu_Naz}
-																			</Text>
-																			{item.Smerovani && (
-																				<Text size="xs" c="dimmed">
-																					{item.Smerovani === 'P' ? 'Pravá' : item.Smerovani === 'L' ? 'Levá' : item.Smerovani}
+																		<Group>
+																			<Text size="sm"
+																				  fw={700}>{item.EvCi_TIM}{item.Premet_Index}</Text>
+																			<Stack gap={0}>
+																				<Text size="sm" fw={500}>
+																					{item.Radek1}
 																				</Text>
-																			)}
-																		</Stack>
+																				<Group>
+																					{item.Druh_Predmetu_Naz && (
+																						<Text size="xs" c="dimmed">
+																							{item.Druh_Predmetu_Naz}
+																						</Text>
+																					)}
+																					{item.Druh_Presunu && (
+																						<Text size="xs" c="dimmed">
+																							{item.Druh_Presunu}
+																						</Text>
+																					)}
+																					{item.Barva && (
+																						<Text size="xs" c="dimmed">
+																							{item.Barva}
+																						</Text>
+																					)}
+																				</Group>
+																			</Stack>
+																		</Group>
 																	</Table.Td>
 																	<Table.Td>
 																		<Select
@@ -376,7 +371,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																			value={itemStatus?.status?.toString() || ""}
 																			onChange={(value) => value && updateItemStatus(
 																				timGroup.EvCi_TIM,
-																				item.ID_PREDMETY,
+																				item.Premet_Index,
 																				{status: parseInt(value) as any}
 																			)}
 																			size="sm"
@@ -384,17 +379,17 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																	</Table.Td>
 																	<Table.Td>
 																		{needsAdditionalData ? (
-																			<NumberInput
+																			<YearPickerInput
 																				placeholder="Rok"
-																				value={itemStatus?.yearOfProduction || ""}
+																				value={itemStatus?.yearOfProduction || undefined}
 																				onChange={(value) => updateItemStatus(
 																					timGroup.EvCi_TIM,
-																					item.ID_PREDMETY,
-																					{yearOfProduction: Number(value) || undefined}
+																					item.Premet_Index,
+																					{yearOfProduction: value || undefined}
 																				)}
-																				min={1990}
-																				max={new Date().getFullYear()}
-																				size="sm"
+																				minDate={new Date(1990, 1)}
+																				maxDate={new Date()}
+																				clearable
 																			/>
 																		) : (
 																			<Text size="sm" c="dimmed">-</Text>
@@ -408,7 +403,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																				value={itemStatus?.arrowOrientation || ""}
 																				onChange={(value) => updateItemStatus(
 																					timGroup.EvCi_TIM,
-																					item.ID_PREDMETY,
+																					item.Premet_Index,
 																					{arrowOrientation: value as "L" | "P"}
 																				)}
 																				size="sm"
@@ -424,7 +419,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 												</Table>
 
 												{completion.completed && (
-													<Alert icon={<IconCheck size={16} />} color="green" mt="sm">
+													<Alert icon={<IconCheck size={16}/>} color="green" mt="sm">
 														Hlášení o obnově TZT pro tento TIM je kompletní.
 													</Alert>
 												)}
@@ -475,11 +470,11 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 			{/* Komentář ke značkařskému úseku */}
 			<Card shadow="sm" padding="md">
 				<Title order={4} mb="md">Komentář ke značkařskému úseku</Title>
-				
+
 				<Text size="sm" c="dimmed" mb="md">
-					<strong>Nápověda k vyplnění:</strong><br />
-					• Místa, která by podle nynějšího stavu v terénu mohla být vyznačkována účelněji<br />
-					• Místa, která nemohla být spolehlivě vyznačkována s návrhem na opatření<br />
+					<strong>Nápověda k vyplnění:</strong><br/>
+					• Místa, která by podle nynějšího stavu v terénu mohla být vyznačkována účelněji<br/>
+					• Místa, která nemohla být spolehlivě vyznačkována s návrhem na opatření<br/>
 					• Místa zhoršené schůdnosti nebo průchodnosti s návrhem na opatření
 				</Text>
 
@@ -508,7 +503,8 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 						Průběh značené trasy v terénu
 					</Text>
 					<Text size="sm" c="dimmed" mb="xs">
-						Souhlasí průběh trasy s jejím zákresem v posledním vydání turistické mapy KČT a s průběhem trasy na mapy.cz?
+						Souhlasí průběh trasy s jejím zákresem v posledním vydání turistické mapy KČT a s průběhem trasy
+						na mapy.cz?
 					</Text>
 					<Radio.Group
 						value={formData.routeComment ? "ano" : ""}
@@ -518,8 +514,8 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 						}}
 					>
 						<Group>
-							<Radio value="ano" label="ANO" />
-							<Radio value="ne" label="NE" />
+							<Radio value="ano" label="ANO"/>
+							<Radio value="ne" label="NE"/>
 						</Group>
 					</Radio.Group>
 				</Box>
