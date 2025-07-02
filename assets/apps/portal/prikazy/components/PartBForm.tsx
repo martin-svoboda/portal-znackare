@@ -19,7 +19,10 @@ import {
 	Button,
 	Progress,
 	Image,
-	ActionIcon
+	ActionIcon,
+	Paper,
+	Divider,
+	Flex
 } from "@mantine/core";
 import {
 	IconInfoCircle,
@@ -318,53 +321,89 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 												<Text fw={500} size="sm" mb="xs">
 													Stav tabulek a směrovek
 												</Text>
-												<Table>
-													<Table.Thead>
-														<Table.Tr>
-															<Table.Th>Předmět</Table.Th>
-															<Table.Th>Stav</Table.Th>
-															<Table.Th>Rok výroby</Table.Th>
-															<Table.Th>Orientace</Table.Th>
-														</Table.Tr>
-													</Table.Thead>
-													<Table.Tbody>
-														{timGroup.items.map((item: any) => {
-															const itemStatus = getItemStatus(timGroup.EvCi_TIM, item.Premet_Index);
-															const isArrow = item.Druh_Predmetu_Naz?.toLowerCase().includes('směrovka');
-															const needsAdditionalData = itemStatus?.status === 1 || itemStatus?.status === 2;
 
-															console.log(item);
-															return (
-																<Table.Tr key={item.Premet_Index}>
-																	<Table.Td>
-																		<Group>
-																			<Text size="sm"
-																				  fw={700}>{item.EvCi_TIM}{item.Premet_Index}</Text>
-																			<Stack gap={0}>
+												<Stack gap={0}>
+													{/* Hlavička - pouze na desktopu */}
+													<Flex
+														visibleFrom="sm"
+														gap="md"
+														pb="sm"
+														style={{borderBottom: '1px solid var(--mantine-color-gray-3)'}}
+													>
+														<Box style={{flex: '0 0 40%'}}>
+															<Text size="sm" fw={600} c="dimmed">Předmět</Text>
+														</Box>
+														<Box style={{flex: '0 0 20%'}}>
+															<Text size="sm" fw={600} c="dimmed">Stav</Text>
+														</Box>
+														<Box style={{flex: '0 0 20%'}}>
+															<Text size="sm" fw={600} c="dimmed">Rok výroby</Text>
+														</Box>
+														<Box style={{flex: '0 0 20%'}}>
+															<Text size="sm" fw={600} c="dimmed">Orientace</Text>
+														</Box>
+													</Flex>
+
+													{/* Řádky */}
+													{timGroup.items.map((item: any, index: number) => {
+														const itemStatus = getItemStatus(timGroup.EvCi_TIM, item.Premet_Index);
+														const isArrow = item.Druh_Predmetu_Naz?.toLowerCase().includes('směrovka');
+														const needsAdditionalData = itemStatus?.status === 1 || itemStatus?.status === 2;
+
+														return (
+															<Box key={item.Premet_Index}>
+																<Flex
+																	gap="md"
+																	py="md"
+																	direction={{base: 'column', sm: 'row'}}
+																	align={{base: 'stretch', sm: 'center'}}
+																>
+																	{/* Předmět */}
+																	<Box w={{base: '100%', sm: '40%'}}>
+																		<Text size="xs" fw={600} c="dimmed"
+																			  hiddenFrom="sm" mb={5}>
+																			Předmět
+																		</Text>
+
+																		<Stack gap={0}>
+																			<Group>
+																				<Text size="sm" fw={700}>
+																					{item.EvCi_TIM}{item.Premet_Index}
+																				</Text>
 																				<Text size="sm" fw={500}>
 																					{item.Radek1}
 																				</Text>
-																				<Group>
-																					{item.Druh_Predmetu_Naz && (
-																						<Text size="xs" c="dimmed">
-																							{item.Druh_Predmetu_Naz}
-																						</Text>
-																					)}
-																					{item.Druh_Presunu && (
-																						<Text size="xs" c="dimmed">
-																							{item.Druh_Presunu}
-																						</Text>
-																					)}
-																					{item.Barva && (
-																						<Text size="xs" c="dimmed">
-																							{item.Barva}
-																						</Text>
-																					)}
-																				</Group>
-																			</Stack>
-																		</Group>
-																	</Table.Td>
-																	<Table.Td>
+																			</Group>
+																			<Group gap="xs">
+																				{item.Druh_Predmetu_Naz && (
+																					<Badge size="sm"
+																						   variant="light">
+																						{item.Druh_Predmetu_Naz}
+																					</Badge>
+																				)}
+																				{item.Druh_Presunu && (
+																					<Badge size="sm"
+																						   variant="light">
+																						{item.Druh_Presunu}
+																					</Badge>
+																				)}
+																				{item.Barva && (
+																					<Badge size="sm"
+																						   variant="light">
+																						{item.Barva}
+																					</Badge>
+																				)}
+																			</Group>
+																		</Stack>
+
+																	</Box>
+
+																	{/* Stav */}
+																	<Group w={{base: '100%', sm: '20%'}}>
+																		<Text w={80} size="xs" fw={600} c="dimmed"
+																			  hiddenFrom="sm" mb={5}>
+																			Stav
+																		</Text>
 																		<Select
 																			placeholder="Vyberte stav"
 																			data={statusOptions}
@@ -375,9 +414,17 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																				{status: parseInt(value) as any}
 																			)}
 																			size="sm"
+																			flex="1"
 																		/>
-																	</Table.Td>
-																	<Table.Td>
+																	</Group>
+
+																	{/* Rok výroby */}
+																	<Group w={{base: '100%', sm: '20%'}}>
+
+																		<Text w={80} size="xs" fw={600} c="dimmed"
+																			  hiddenFrom="sm" mb={5}>
+																			Rok výroby
+																		</Text>
 																		{needsAdditionalData ? (
 																			<YearPickerInput
 																				placeholder="Rok"
@@ -390,12 +437,21 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																				minDate={new Date(1990, 1)}
 																				maxDate={new Date()}
 																				clearable
+																				size="sm"
+																				flex="1"
 																			/>
 																		) : (
-																			<Text size="sm" c="dimmed">-</Text>
+																			<Text size="sm" c="dimmed"
+																				  hiddenFrom="sm">-</Text>
 																		)}
-																	</Table.Td>
-																	<Table.Td>
+																	</Group>
+
+																	{/* Orientace */}
+																	<Group w={{base: '100%', sm: '20%'}}>
+																		<Text w={80} size="xs" fw={600} c="dimmed"
+																			  hiddenFrom="sm" mb={5}>
+																			Orientace směrovky
+																		</Text>
 																		{needsAdditionalData && isArrow ? (
 																			<Select
 																				placeholder="L/P"
@@ -407,16 +463,19 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																					{arrowOrientation: value as "L" | "P"}
 																				)}
 																				size="sm"
+																				flex="1"
 																			/>
 																		) : (
-																			<Text size="sm" c="dimmed">-</Text>
+																			<Text size="sm" c="dimmed"
+																				  hiddenFrom="sm">-</Text>
 																		)}
-																	</Table.Td>
-																</Table.Tr>
-															);
-														})}
-													</Table.Tbody>
-												</Table>
+																	</Group>
+																</Flex>
+																<Divider/>
+															</Box>
+														);
+													})}
+												</Stack>
 
 												{completion.completed && (
 													<Alert icon={<IconCheck size={16}/>} color="green" mt="sm">
