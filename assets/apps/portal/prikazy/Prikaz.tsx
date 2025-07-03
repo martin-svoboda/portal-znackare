@@ -29,7 +29,7 @@ import {
 import {MRT_Localization_CS} from "mantine-react-table/locales/cs";
 import {BreadcrumbsNav} from "../shared/BreadcrumbsNav";
 import NahledTim from "../components/NahledTim";
-import {barvaMantine, barvaDleJmena} from "../shared/colors";
+import {barvaMantine, barvaDleJmena, barvaDleKodu} from "../shared/colors";
 import {Znacka} from "../components/Znacka";
 import MapaTrasy from "../components/MapaTrasy";
 import {PrikazStavBadge} from "./PrikazStavBadge";
@@ -50,6 +50,7 @@ function groupByEvCiTIM(rows: any[]) {
 				EvCi_TIM: row.EvCi_TIM,
 				Naz_TIM: row.Naz_TIM,
 				Stav_TIM: row.Stav_TIM,
+				Stav_TIM_Nazev: row.Stav_TIM_Nazev,
 				NP: row.NP,
 				GPS_Sirka: row.GPS_Sirka,
 				GPS_Delka: row.GPS_Delka,
@@ -72,11 +73,11 @@ const isNezpracovany = (stav) => stav === 'Přidělený' || stav === 'Vystavený
 const PrikazUseky = ({useky}: { useky: any[] }) => {
 	const rows = useky.map((usek) => (
 		<Table.Tr key={usek.Kod_ZU}>
-			<Table.Td><Znacka color={usek.Barva_Naz} size={30}/></Table.Td>
+			<Table.Td><Znacka color={usek.Barva_Kod} move={usek.Druh_Presunu} shape={usek.Druh_Odbocky_Kod || usek.Druh_Znaceni_Kod} size={30}/></Table.Td>
 			<Table.Td>{replaceTextWithIcons(usek.Nazev_ZU, 14)}</Table.Td>
 			<Table.Td>{formatKm(usek.Delka_ZU)} Km</Table.Td>
-			<Table.Td><Badge autoContrast color={barvaDleJmena(usek.Barva_Naz)}>{usek.Barva_Naz}</Badge></Table.Td>
-			<Table.Td>{formatUsekType(usek.UsekZP_Typ)}</Table.Td>
+			<Table.Td><Badge autoContrast color={barvaDleKodu(usek.Barva_Kod)}>{usek.Barva_Naz}</Badge></Table.Td>
+			<Table.Td>{usek.Druh_Odbocky || usek.Druh_Znaceni}</Table.Td>
 		</Table.Tr>
 	));
 
@@ -89,7 +90,7 @@ const PrikazUseky = ({useky}: { useky: any[] }) => {
 						<Table.Th>Název úseku</Table.Th>
 						<Table.Th>Délka</Table.Th>
 						<Table.Th>Barva</Table.Th>
-						<Table.Th>Typ</Table.Th>
+						<Table.Th>Druh</Table.Th>
 					</Table.Tr>
 				</Table.Thead>
 				<Table.Tbody>{rows}</Table.Tbody>
@@ -143,9 +144,17 @@ const Prikaz = () => {
 		const set = new Set();
 		return predmety
 			.filter(item => item.Barva && item.Druh_Presunu)
-			.map(item => ({Barva: item.Barva, Druh_Presunu: item.Druh_Presunu}))
+			.map(item => ({
+				Barva: item.Barva,
+				Barva_Kod: item.Barva_Kod,
+				Druh_Presunu: item.Druh_Presunu,
+				Druh_Znaceni: item.Druh_Znaceni,
+				Druh_Znaceni_Kod: item.Druh_Znaceni_Kod,
+				Druh_Odbocky: item.Druh_Odbocky,
+				Druh_Odbocky_Kod: item.Druh_Odbocky_Kod
+			}))
 			.filter((item) => {
-				const key = `${item.Barva}|${item.Druh_Presunu}`;
+				const key = `${item.Barva}|${item.Barva_Kod}|${item.Druh_Presunu}|${item.Druh_Znaceni_Kod || ''}|${item.Druh_Odbocky_Kod || ''}`;
 				if (set.has(key)) return false;
 				set.add(key);
 				return true;
@@ -157,7 +166,6 @@ const Prikaz = () => {
 		return useky.reduce((sum, usek) => sum + Number(usek.Delka_ZU || 0), 0);
 	}, [useky, head?.Druh_ZP]);
 
-	console.log('soubeh', soubeh);
 	const mapPoints = useMemo(
 			() =>
 				groupedData
@@ -196,12 +204,9 @@ const Prikaz = () => {
 			},
 			{accessorKey: "NP", header: "Montáž", size: 100},
 			{
-				accessorKey: "Stav_TIM",
+				accessorKey: "Stav_TIM_Nazev",
 				header: "Stav",
 				size: 40,
-				Cell: ({row}) => {
-					return formatTimStatus(row.original.Stav_TIM)
-				}
 			},
 		],
 		[]
@@ -260,7 +265,7 @@ const Prikaz = () => {
 		renderDetailPanel: ({row}) => (
 			<>
 				<Text size="sm" c="dimmed" hiddenFrom="sm">Montáž: {row.original.NP}</Text>
-				<Text size="sm" c="dimmed" hiddenFrom="sm">Stav: {formatTimStatus(row.original.Stav_TIM)}</Text>
+				<Text size="sm" c="dimmed" hiddenFrom="sm">Stav: {row.original.Stav_TIM_Nazev}</Text>
 				<Stack gap="sm">
 					{row.original.items?.map((item: any, i: number) => {
 
@@ -281,16 +286,21 @@ const Prikaz = () => {
 													{item.Smerovani === 'P' ? 'Pravá' : item.Smerovani === 'L' ? 'Levá' : item.Smerovani}
 												</Text>
 											)}
+											{item.Druh_Odbocky && (
+												<Text size="sm" c="dimmed">
+													{item.Druh_Odbocky}
+												</Text>
+											)}
 										</Box>
 										<Box>
 											{item.Barva && (
 												<Badge autoContrast
-													   color={barvaDleJmena(item.Barva)}>{item.Barva}</Badge>
+													   color={barvaDleKodu(item.Barva_Kod)}>{item.Barva}</Badge>
 											)}
 										</Box>
 										<Box>
-											<Text size="sm" c="dimmed">{item.Druh_Presunu}</Text>
-											<Text size="sm">ID: {item.EvCi_TIM + item.Premet_Index}</Text>
+											<Text size="sm" c="dimmed">{item.Druh_Presunu} {item.Druh_Znaceni}</Text>
+											<Text size="sm">ID: {item.EvCi_TIM + item.Predmet_Index}</Text>
 										</Box>
 									</Flex>
 								</Flex>
@@ -358,7 +368,7 @@ const Prikaz = () => {
 										Možný souběh/křížení tras:
 									</Text>
 									{soubeh.map((row, index) => (
-										<Znacka size={30} move={row.Druh_Presunu} color={row.Barva}/>
+										<Znacka color={row.Barva_Kod} move={row.Druh_Presunu} shape={row.Druh_Odbocky_Kod || row.Druh_Znaceni_Kod} size={30}/>
 									))}
 								</Group>
 							</>

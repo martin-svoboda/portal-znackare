@@ -2,7 +2,7 @@ import React, {useRef, useLayoutEffect, useState} from "react";
 import {Paper, Flex, Group, Text, Box} from "@mantine/core";
 import {formatKm} from "../shared/formatting";
 import {TimArrowShape} from "./TimArrowShape"; // Importuj svoji komponentu
-import {barvaDleJmena} from "../shared/colors";
+import {barvaDleJmena, barvaDleKodu} from "../shared/colors";
 import {replaceTextWithIcons} from "../shared/textIconReplacer";
 
 function getItemLines(item: any) {
@@ -30,7 +30,7 @@ const NahledTim = ({item}: { item: any }) => {
 		}
 	}, [lines]);
 
-	const vedouciBarva = item.Barva ? barvaDleJmena(item.Barva) : 'transparent';
+	const vedouciBarva = item.Barva_Kod ? barvaDleKodu(item.Barva_Kod) : 'transparent';
 
 	const barvaPodkladu = (val: string | undefined) => {
 		if (!val) return "orange.0";
@@ -61,7 +61,8 @@ const NahledTim = ({item}: { item: any }) => {
 		}
 		shapeStyle = {
 			left: "0",
-			transform: "translateY(-50%)"
+			transform: "translateY(-50%)",
+			justifyContent: "end",
 		}
 	}
 	if (showArrow && direction === "P") {
@@ -71,7 +72,8 @@ const NahledTim = ({item}: { item: any }) => {
 		}
 		shapeStyle = {
 			right: "0",
-			transform: "translateY(-50%)"
+			transform: "translateY(-50%)",
+			justifyContent: "start",
 		}
 	}
 
@@ -90,9 +92,10 @@ const NahledTim = ({item}: { item: any }) => {
 					top="50%"
 					w="40px"
 					h="25px"
+					display="flex"
 					style={shapeStyle}
 				>
-					<TimArrowShape color={vedouciBarva} shape="pasova"/>
+					<TimArrowShape color={vedouciBarva} shape={item.Druh_Odbocky_Kod || item.Druh_Znaceni_Kod}/>
 				</Box>}
 				<Flex
 					w="200"
@@ -103,39 +106,65 @@ const NahledTim = ({item}: { item: any }) => {
 					direction="column"
 				>
 					{lines.length > 0 ? (
-						lines.map((line, idx) => (
-							<Group
-								key={idx}
-								justify={line.km ? "space-between" : "center"}
-								w="100%"
-								gap={0}
-								style={{minHeight: lines.length == 1 ? '40px' : 'auto'}}
-							>
-								<Box style={{
-									display: 'flex',
-									justifyContent: line.km ? 'flex-start' : 'center',
-									flex: 1,
-									width: '55%',
-								}}>
-									<Text ta="center" fw={700} size="sm" c="black"
-										  style={{
-											  transform: `scaleX(${line?.text?.length > 20 ? '0.75' : '0.85'})`,
-											  whiteSpace: 'nowrap',
-											  transformOrigin: line.km ? 'left center' : 'center'
-										  }}
-									>
-										{line?.text?.split(/(\([^)]*\))/).flatMap((part, i) => {
-											if (part.startsWith('(') && part.endsWith(')')) {
-												return <small key={i}>{part}</small>;
-											}
-											// Použij novou globální funkci pro nahrazení ikon
-											return <span key={i}>{replaceTextWithIcons(part, 10)}</span>;
-										})}
-									</Text>
-								</Box>
-								{line.km && <Text size="sm" c="black">{line.km} km</Text>}
-							</Group>
-						))
+						lines.map((line, idx) => {
+							// Konstanty pro scale transformaci
+							const longTextThreshold = 18;
+							const scaleCompressed = 0.75;
+							const scaleNormal = 0.85;
+							const currentScale = line?.text?.length > longTextThreshold ? scaleCompressed : scaleNormal;
+
+							// Společná funkce pro renderování textu
+							const renderTextContent = () => line?.text?.split(/(\([^)]*\))/).flatMap((part, i) => {
+								if (part.startsWith('(') && part.endsWith(')')) {
+									return <small key={i}>{part}</small>;
+								}
+								// Použij novou globální funkci pro nahrazení ikon
+								return <span key={i}>{replaceTextWithIcons(part, 10)}</span>;
+							});
+
+							return (
+								<Group
+									key={idx}
+									justify={line.km ? "space-between" : "center"}
+									w="100%"
+									gap={0}
+									pos="relative"
+									style={{minHeight: lines.length == 1 ? '40px' : 'auto'}}
+								>
+									{line.km ? (
+										<>
+											<Box style={{
+												display: 'flex',
+												justifyContent: 'flex-start',
+												flex: 1,
+											}}>
+												<Box pos="absolute" top="0" w='120%'>
+													<Text fw={700} size="sm" c="black"
+														style={{
+															transform: `scaleX(${currentScale})`,
+															whiteSpace: 'nowrap',
+															transformOrigin: 'left center'
+														}}
+													>
+														{renderTextContent()}
+													</Text>
+												</Box>
+											</Box>
+											<Text size="sm" c="black">{line.km} km</Text>
+										</>
+									) : (
+										<Text ta="center" fw={700} size="sm" c="black"
+											style={{
+												transform: `scaleX(${scaleNormal})`,
+												transformOrigin: 'center'
+											}}
+										>
+											{renderTextContent()}
+										</Text>
+									)}
+								</Group>
+							);
+						})
 					) : (
 						<Text size="sm" c="dimmed" ta="center">Žádný popis</Text>
 					)}
@@ -144,8 +173,8 @@ const NahledTim = ({item}: { item: any }) => {
 						w="100%"
 						gap={0}
 					>
-						<Text ta="center" size="xs" c="black">{item.Rok}</Text>
-						<Text ta="right" size="xs" c="black">{item.EvCi_TIM + item.Premet_Index}</Text>
+						<Text ta="center" size="xs" c="black">{item.Rok_Vyroby}</Text>
+						<Text ta="right" size="xs" c="black">{item.EvCi_TIM + item.Predmet_Index}</Text>
 					</Group>
 				</Flex>
 			</Paper>

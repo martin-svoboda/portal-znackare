@@ -2,16 +2,16 @@ import React from "react";
 
 type TimArrowShapeProps = {
 	color: string;
-	shape?: "pasova" | "hrad" | "studanka" | "vrchol" | "zajimavost";
+	shape?: string;
 };
 
 export const TimArrowShape = ({
 								  color,
-								  shape = "pasova",
+								  shape = "PA",
 							  }: TimArrowShapeProps) => {
 
 	switch (shape) {
-		case "pasova":
+		case "PA":
 			return (
 				<svg width={40} height={25} viewBox="0 0 40 25">
 					<polygon
@@ -20,7 +20,16 @@ export const TimArrowShape = ({
 					/>
 				</svg>
 			);
-		case "hrad":
+		case "NS":
+			return (
+				<svg width={25} height={25} viewBox="0 0 25 25">
+					<rect x="0.905" y="0.758" width="24.979" height="25.018" fill={color}/>
+					<path
+						d="M1.621,7.261l17.864,17.864l-17.864,-0l0,-17.864Zm23.526,12.102l-17.865,-17.864l17.865,-0l-0,17.864Z"
+						fill="#fff"/>
+				</svg>
+			);
+		case "Z":
 			return (
 				<svg width={40} height={26} viewBox="0 0 40 26">
 					<path
@@ -28,7 +37,7 @@ export const TimArrowShape = ({
 						fill={color}/>
 				</svg>
 			);
-		case "studanka":
+		case "S":
 			return (
 				<svg width={40} height={26} viewBox="0 0 40 26">
 					<path
@@ -36,13 +45,13 @@ export const TimArrowShape = ({
 						fill={color}/>
 				</svg>
 			);
-		case "vrchol":
+		case "V":
 			return (
 				<svg width={40} height={26} viewBox="0 0 40 26">
 					<path d="M20.467,4.305l10.858,19.906l-21.716,0l10.858,-19.906Z" fill={color}/>
 				</svg>
 			);
-		case "zajimavost":
+		case "T":
 			return (
 				<svg width={40} height={26} viewBox="0 0 40 26">
 					<path

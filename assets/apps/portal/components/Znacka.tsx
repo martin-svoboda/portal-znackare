@@ -1,58 +1,89 @@
 import React from "react";
-import {barvaDlePresunu, barvaDleJmena} from "../shared/colors";
+import {barvaDlePresunu, barvaDleJmena, barvaDleKodu} from "../shared/colors";
 
 type ZnackaProps = {
 	color?: string; // Vedoucí barva (např. modrá)
-	shape?: "pasova" | "hrad" | "studanka" | "vrchol" | "zajimavost" | "mistni" | "NS";
-	move?: "PZT" | "LZT" | "CZT";
+	shape?: string; // tvar odbočky nebo druh přesunu
+	move?: string; // typ přesunu (PZT, LZT, CZS, CZT, JZT, VZT, 0/null)
 	size?: number;
 };
 
+/**
+ * Shapes
+ *
+ * odbočky
+ * B = bezbarvá
+ * P = pomník
+ * S = pramen
+ * T = trasa
+ * V = vyhlídka
+ * Z = zřícenina
+ *
+ * druhy
+ * PA = pásové
+ * MI = místní
+ * NS = NS zvlášť
+ * SN = NS souběžná
+ * VY = významové
+ * VO = vozíčkářská
+ * DO = CTZ silniční
+ * CT = CTZ terénní
+ * NE = bezbarvá
+ *
+ * přesuny (move)
+ * PZT = pěší
+ * LZT = lyčařská
+ * CZS = cyklo silniční
+ * CZT = cyklo terénní
+ * JZT = jezdecká
+ * VZT = vozíčkářská
+ * 0/null = spojka tras
+ */
+
 export const Znacka = ({
 						   color = "",
-						   shape = "pasova",
+						   shape = "PA",
 						   move = "PZT",
 						   size = 100,
 					   }: ZnackaProps) => {
 	let upozorneni = barvaDlePresunu(move);
-	let vedouci = barvaDleJmena(color);
+	let vedouci = barvaDleKodu(color);
 
 	console.log("Znacka", color, shape, move, size);
 	console.log("Znacka barvy", upozorneni, vedouci);
-	if (shape === "NS") {
+	if (shape === "NS" || shape === "SN") {
 		upozorneni = barvaDlePresunu("PZT");
-		vedouci = barvaDleJmena("zelená");
+		vedouci = barvaDleKodu("ZE");
 	}
 
 	switch (shape) {
-		case "pasova":
+		case "PA":
 			// Tři pásy: horní a dolní upozorňovací, střední vedoucí, mezery 5 px
 			return (
 				<svg width={size} height={size} viewBox="0 0 120 120">
-					<rect x="0" y="0" width="120" height="120" fill={barvaDleJmena("khaki")}/>
-					<rect x="10" y="10" width="100" height="30" fill={upozorneni}/>
-					<rect x="10" y="45" width="100" height="30" fill={vedouci}/>
-					<rect x="10" y="80" width="100" height="30" fill={upozorneni}/>
+					<rect x={0} y={0} width={120} height={120} fill={barvaDleKodu("KH")}/>
+					<rect x={10} y={10} width={100} height={30} fill={upozorneni}/>
+					<rect x={10} y={45} width={100} height={30} fill={vedouci}/>
+					<rect x={10} y={80} width={100} height={30} fill={upozorneni}/>
 				</svg>
 			);
-		case "hrad":
+		case "Z":
 			// Okolní čtverec s výřezem "hradu" (L tvar), mezera 5 bodů
 			// Vnitřní tvar: 60x60 na středu, vnější výřez: 70x70
 			return (
-				<svg width={size} height={size} viewBox="0 0 100 100">
-					{/* Pozadí - upozorňovací tvar s výřezem */}
+				<svg width={size} height={size} viewBox="0 0 120 120">
+
 					<defs>
 						<clipPath id="clipHrad">
-							{/* L tvar 70x70 (větší o 5 px na každou stranu) */}
 							<polygon points="15,15 85,15 85,35 95,35 95,95 15,95"/>
 						</clipPath>
 					</defs>
-					<rect x={0} y={0} width={100} height={100} fill={upozorneni} clipPath="url(#clipHrad)"/>
-					{/* Vnitřní L tvar (hrad) */}
+					<rect x={0} y={0} width={120} height={120} fill={barvaDleKodu("KH")}/>
+					<rect x={10} y={10} width={100} height={100} fill={upozorneni} clipPath="url(#clipHrad)"/>
 					<polygon points="20,20 80,20 80,30 90,30 90,90 20,90" fill={vedouci}/>
 				</svg>
 			);
-		case "studanka":
+		case "S":
 			// Pozadí: půlkruh průměr 70, vnitřní půlkruh 60, mezera 5px, spodní hrana na spodní straně čtverce
 			return (
 				<svg width={size} height={size} viewBox="0 0 100 100">
@@ -70,7 +101,7 @@ export const Znacka = ({
 					/>
 				</svg>
 			);
-		case "vrchol":
+		case "V":
 			// Pozadí: rovnostranný trojúhelník stranou 70 (výška ≈ 60.6), vnitřní 60 (výška ≈ 52), mezera 5px, spodní hrana 15px odspodu
 			// Trojúhelník na střed, základna vodorovně
 			return (
@@ -78,7 +109,7 @@ export const Znacka = ({
 					{/* Pozadí s výřezem */}
 					<defs>
 						<clipPath id="clipVrchol">
-							<polygon points="50,14.7 85,75 15,75" />
+							<polygon points="50,14.7 85,75 15,75"/>
 						</clipPath>
 					</defs>
 					<rect x={0} y={0} width={100} height={100} fill={upozorneni} clipPath="url(#clipVrchol)"/>
@@ -89,7 +120,7 @@ export const Znacka = ({
 					/>
 				</svg>
 			);
-		case "zajimavost":
+		case "P":
 			// Vnitřní "ponorka": obdélník 100x60, nahoře mezera 5, dole mezera 5, na horní hraně dva čtverce 30x30 vlevo i vpravo, upozorňovací horní a dolní pruh
 			return (
 				<svg width={size} height={size} viewBox="0 0 100 100">
@@ -104,7 +135,7 @@ export const Znacka = ({
 					<rect x={35} y={20} width={30} height={30} fill={vedouci}/>
 				</svg>
 			);
-		case "mistni":
+		case "MI":
 			// Čtverec 100x100, rozdělený diagonálou s 5px mezerou
 			return (
 				<svg width={size} height={size} viewBox="0 0 100 100">
@@ -121,28 +152,26 @@ export const Znacka = ({
 				</svg>
 			);
 		case "NS":
+		case "SN":
 			// Čtverec 100x100, diagonální pruh 30px ve vedoucí barvě, oddělený mezerou 5px,
 			// zbylé dva trojúhelníky upozorňovací barvy
 			return (
-				<svg width={size} height={size} viewBox="0 0 100 100">
-					{/* Levý spodní trojúhelník (upozorňovací barva) */}
-					<polygon
-						points="0,100 0,0 32.5,0 0,32.5"
-						fill={upozorneni}
-					/>
-					{/* Pravý horní trojúhelník (upozorňovací barva) */}
-					<polygon
-						points="100,0 100,100 67.5,100 100,67.5"
-						fill={upozorneni}
-					/>
-					{/* Diagonální pruh (vedoucí barva, šířka 30, s mezerou 5px) */}
-					<polygon
-						points="5,0 32.5,0 100,67.5 100,95 95,100 67.5,100 0,32.5 0,5"
-						fill={vedouci}
-					/>
+				<svg width={size} height={size} viewBox="0 0 120 120">
+					<rect x="0" y="0" width="120" height="120" fill={barvaDleKodu("KH")}/>
+					<path
+						d="M88.69,109.988l-78.608,-78.609l0,-21.336l0.056,-0.055l20.979,-0l78.965,78.965l0,21.035l-21.392,-0Z"
+						fill={vedouci}/>
+					<path
+						d="M10.048,38.416l71.716,71.716l-71.716,0l0,-71.716Zm100,43.432l-71.716,-71.716l71.716,0l0,71.716Z"
+						fill={upozorneni}/>
 				</svg>
 			);
 		default:
-			return null;
+			return (
+				<svg width={size} height={size} viewBox="0 0 120 120">
+					<rect x="0" y="0" width="120" height="120" fill={barvaDleKodu("KH")}/>
+					<rect x="10" y="10" width="100" height="100" fill={upozorneni}/>
+				</svg>
+			);
 	}
 };

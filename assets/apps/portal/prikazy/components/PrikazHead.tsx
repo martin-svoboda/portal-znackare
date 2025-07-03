@@ -51,8 +51,8 @@ export const PrikazHead: React.FC<PrikazHeadProps> = ({head, delka, simple = fal
 				</Stack>
 				{!simple && (
 					<Stack gap="sm">
-						<Text size="sm">Kraj: <b>{head.KKZ}</b></Text>
-						<Text size="sm">Obvod: <b>{head.ZO}</b></Text>
+						<Text size="sm">KKZ: <b>{head.Nazev_KKZ}</b></Text>
+						<Text size="sm">ZO: <b>{head.Nazev_ZO}</b></Text>
 					</Stack>
 				)}
 				<Stack gap="sm">

@@ -239,7 +239,7 @@ const TimTableRowTwoColumns: React.FC<{ leftItem: any; rightItem?: any }> = ({le
 					</div>
 				</td>
 				<td style={cellStyle}>
-					<strong>{leftItem.groupInfo.EvCi_TIM + leftItem.Premet_Index}</strong><br/>{leftItem.Barva}
+					<strong>{leftItem.groupInfo.EvCi_TIM + leftItem.Predmet_Index}</strong><br/>{leftItem.Barva}
 				</td>
 				<td style={inputCellStyle}></td>
 				<td style={inputCellStyle}></td>
@@ -268,7 +268,7 @@ const TimTableRowTwoColumns: React.FC<{ leftItem: any; rightItem?: any }> = ({le
 							</div>
 						</td>
 						<td style={cellStyle}>
-							<strong>{rightItem.groupInfo.EvCi_TIM + rightItem.Premet_Index}</strong><br/>{rightItem.Barva}
+							<strong>{rightItem.groupInfo.EvCi_TIM + rightItem.Predmet_Index}</strong><br/>{rightItem.Barva}
 						</td>
 						<td style={inputCellStyle}></td>
 						<td style={inputCellStyle}></td>

@@ -346,12 +346,12 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 
 													{/* Řádky */}
 													{timGroup.items.map((item: any, index: number) => {
-														const itemStatus = getItemStatus(timGroup.EvCi_TIM, item.Premet_Index);
+														const itemStatus = getItemStatus(timGroup.EvCi_TIM, item.Predmet_Index);
 														const isArrow = item.Druh_Predmetu_Naz?.toLowerCase().includes('směrovka');
 														const needsAdditionalData = itemStatus?.status === 1 || itemStatus?.status === 2;
 
 														return (
-															<Box key={item.Premet_Index}>
+															<Box key={item.Predmet_Index}>
 																<Flex
 																	gap="md"
 																	py="md"
@@ -368,7 +368,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																		<Stack gap={0}>
 																			<Group>
 																				<Text size="sm" fw={700}>
-																					{item.EvCi_TIM}{item.Premet_Index}
+																					{item.EvCi_TIM}{item.Predmet_Index}
 																				</Text>
 																				<Text size="sm" fw={500}>
 																					{item.Radek1}
@@ -410,7 +410,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																			value={itemStatus?.status?.toString() || ""}
 																			onChange={(value) => value && updateItemStatus(
 																				timGroup.EvCi_TIM,
-																				item.Premet_Index,
+																				item.Predmet_Index,
 																				{status: parseInt(value) as any}
 																			)}
 																			size="sm"
@@ -431,7 +431,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																				value={itemStatus?.yearOfProduction || undefined}
 																				onChange={(value) => updateItemStatus(
 																					timGroup.EvCi_TIM,
-																					item.Premet_Index,
+																					item.Predmet_Index,
 																					{yearOfProduction: value || undefined}
 																				)}
 																				minDate={new Date(1990, 1)}
@@ -459,7 +459,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																				value={itemStatus?.arrowOrientation || ""}
 																				onChange={(value) => updateItemStatus(
 																					timGroup.EvCi_TIM,
-																					item.Premet_Index,
+																					item.Predmet_Index,
 																					{arrowOrientation: value as "L" | "P"}
 																				)}
 																				size="sm"

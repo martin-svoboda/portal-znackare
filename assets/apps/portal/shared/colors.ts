@@ -39,6 +39,32 @@ export function barvaDleJmena(val: string | undefined) {
 			return "#cccccc";   // fallback šedá
 	}
 }
+export function barvaDleKodu(val: string | undefined) {
+	if (!val) return "";
+	const v = val.trim().toUpperCase();
+	switch (v) {
+		case "CE":
+			return "#cc1122";   // RAL 3020 (červená signální) – přibližně #cc1122
+		case "MO":
+			return "#2277bb";   // RAL 5015 (modrá nebeská) – přibližně #2277bb
+		case "ZE":
+			return "#01876e";   // RAL 6024 (zelená dopravní) – přibližně #01876e
+		case "ZL":
+			return "#ffe000";   // RAL 1003 (žlutá signální)
+		case "BI":
+			return "#f5f5f5";   // RAL 1013 (bílá perlová)
+		case "KH":
+			return "#6A5F31";   // RAL 7008 (Khaki Gray)
+		case "BE":
+			return "transparent";   // bezbarvá
+		case "XX":
+			return "transparent";   // nerozlišeno
+		case "CA":
+			return "#000000";   // černá
+		default:
+			return "#cccccc";   // fallback šedá
+	}
+}
 
 export function barvaMantine(val: string) {
 	if (!val) return "gray";
