@@ -27,7 +27,7 @@ import {apiRequest} from '../shared/api';
 import {notifications} from '@mantine/notifications';
 import RequireLogin from '../auth/RequireLogin';
 import {Helmet} from "react-helmet-async";
-import {useNavigate} from "react-router-dom";
+import {useNavigate, useSearchParams} from "react-router-dom";
 import {
 	IconBrush,
 	IconTool,
@@ -56,10 +56,50 @@ const ProtectedContent = () => {
 	const [data, setData] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [year, setYear] = useState<string>('');
 	const navigate = useNavigate();
-	const [showOnlyToProcess, setShowOnlyToProcess] = useState(false);
+	const [searchParams, setSearchParams] = useSearchParams();
 	const isNezpracovany = (stav) => stav === 'Přidělený' || stav === 'Vystavený';
+
+	// Inicializace filtrů z URL (vždy, ne jen při návratu)
+	const [year, setYear] = useState<string>(() => {
+		return searchParams.get('year') || '';
+	});
+
+	const [showOnlyToProcess, setShowOnlyToProcess] = useState(() => {
+		return searchParams.get('process') === 'true';
+	});
+
+	// Aktualizace URL parametrů při změně filtrů
+	const updateUrlParams = (newYear: string, newShowOnlyToProcess: boolean) => {
+		const params = new URLSearchParams();
+		if (newYear) params.set('year', newYear);
+		if (newShowOnlyToProcess) params.set('process', 'true');
+		setSearchParams(params, { replace: true });
+	};
+
+	// Handlery pro změny filtrů
+	const handleYearChange = (val: string | null) => {
+		const newYear = val || '';
+		setYear(newYear);
+		updateUrlParams(newYear, showOnlyToProcess);
+		// Načti data s novým rokem
+		if (intAdr) {
+			fetchData(newYear || undefined);
+		}
+	};
+
+	const handleShowOnlyToProcessChange = (checked: boolean) => {
+		setShowOnlyToProcess(checked);
+		updateUrlParams(year, checked);
+		// Při změně filtru "jen ke zpracování" nemusíme volat API znovu
+		// protože filtrování se dělá na straně klienta
+	};
+
+	// Handler pro navigaci na detail
+	const handleDetailClick = (prikazId: string) => {
+		navigate(`/prikaz/${prikazId}`);
+	};
+
 	const fetchData = async (selectedYear?: string) => {
 		setLoading(true);
 		setError(null);
@@ -75,14 +115,12 @@ const ProtectedContent = () => {
 		}
 	};
 
+	// Načtení dat při mount nebo změně intAdr
 	useEffect(() => {
 		if (!intAdr) return;
-		fetchData();
-	}, [intAdr]);
-
-	useEffect(() => {
-		if (year) fetchData(year);
-	}, [year]);
+		// Načti data s aktuálním rokem z URL (pokud existuje)
+		fetchData(year || undefined);
+	}, [intAdr]); // Pouze při změně intAdr, ne při změně year
 
 	const druhZPIkona: Record<string, any> = {
 		O: IconBrush,      // Obnova – štětec
@@ -197,7 +235,7 @@ const ProtectedContent = () => {
 							opacity: 0.7,
 						}),
 				},
-				onClick: () => navigate(`/prikaz/${row.original.ID_Znackarske_Prikazy}`),
+				onClick: () => handleDetailClick(row.original.ID_Znackarske_Prikazy),
 			};
 		},
 		renderTopToolbarCustomActions: () => (
@@ -208,13 +246,13 @@ const ProtectedContent = () => {
 					placeholder="Aktuální rok"
 					data={getAvailableYears()}
 					value={year}
-					onChange={(val) => setYear(val || '')}
+					onChange={handleYearChange}
 					aria-label="Výběr roku"
 				/>
 				<Switch
 					size="xs"
 					checked={showOnlyToProcess}
-					onChange={(e) => setShowOnlyToProcess(e.currentTarget.checked)}
+					onChange={(e) => handleShowOnlyToProcessChange(e.currentTarget.checked)}
 					label="Jen ke zpracování"
 				/>
 			</Group>
@@ -253,7 +291,7 @@ const ProtectedContent = () => {
 const Prikazy = () => (
 	<>
 		<Helmet>
-			<title>Příkazy | {window.kct_portal?.bloginfo?.name}</title>
+			<title>{`Příkazy | ${window.kct_portal?.bloginfo?.name}`}</title>
 		</Helmet>
 
 		<RequireLogin>

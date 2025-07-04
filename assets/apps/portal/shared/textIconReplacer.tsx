@@ -71,9 +71,10 @@ const iconMap: Record<string, (size: number) => React.ReactElement> = {
  * Nahradí textové značky začínající & příslušnými ikonami
  * @param text - Vstupní text obsahující značky ve formátu &TAG nebo &TAG1,TAG2,TAG3
  * @param iconSize - Velikost ikon (výchozí 10)
+ * @param hideIcon
  * @returns React fragment s textem a ikonami
  */
-export const replaceTextWithIcons = (text: string, iconSize: number = 10): React.ReactNode => {
+export const replaceTextWithIcons = (text: string, iconSize: number = 10, hideIcon = false): React.ReactNode => {
 	if (!text) return text;
 
 	// Najdi všechny výskyty &NĚCO nebo &NĚCO,NĚCO2,NĚCO3
@@ -85,6 +86,11 @@ export const replaceTextWithIcons = (text: string, iconSize: number = 10): React
 		<span style={{display: 'inline-flex', gap: '4px', flexWrap: 'wrap'}}>
 			{parts.map((part, i) => {
 				if (part.startsWith('&')) {
+
+					if (hideIcon) {
+						return;
+					}
+
 					// Odstraň & a rozděl podle čárek
 					const iconKeys = part.slice(1).split(',').map(key => key.trim());
 

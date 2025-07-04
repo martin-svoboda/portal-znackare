@@ -110,18 +110,19 @@ const NahledTim = ({item}: { item: any }) => {
 						{lines.length > 0 ? (
 							lines.map((line, idx) => {
 								// Konstanty pro scale transformaci
-								const longTextThreshold = 18;
+								const longTextThreshold = 20;
 								const scaleCompressed = 0.75;
 								const scaleNormal = 0.85;
 								const currentScale = line?.text?.length > longTextThreshold ? scaleCompressed : scaleNormal;
+								const textSize = item.Druh_Predmetu === "M" ? idx === 0 ? "lg" : "xs" : "sm";
 
 								// Společná funkce pro renderování textu
-								const renderTextContent = () => line?.text?.split(/(\([^)]*\))/).flatMap((part, i) => {
+								const renderTextContent = ( hideIcon = false) => line?.text?.split(/(\([^)]*\))/).flatMap((part, i) => {
 									if (part.startsWith('(') && part.endsWith(')')) {
 										return <small key={i}>{part}</small>;
 									}
 									// Použij novou globální funkci pro nahrazení ikon
-									return <span key={i}>{replaceTextWithIcons(part, 10)}</span>;
+									return <span key={i}>{replaceTextWithIcons(part, 10, hideIcon)}</span>;
 								});
 
 								return (
@@ -129,6 +130,7 @@ const NahledTim = ({item}: { item: any }) => {
 										key={idx}
 										justify={line.km ? "space-between" : "center"}
 										w="100%"
+										mih={16}
 										gap={0}
 										pos="relative"
 									>
@@ -140,7 +142,7 @@ const NahledTim = ({item}: { item: any }) => {
 													flex: 1,
 												}}>
 													<Box pos="absolute" top="0" w='120%'>
-														<Text fw={700} size="sm" c="black"
+														<Text fw={700} size={textSize} c="black"
 															  style={{
 																  transform: `scaleX(${currentScale})`,
 																  whiteSpace: 'nowrap',
@@ -151,10 +153,21 @@ const NahledTim = ({item}: { item: any }) => {
 														</Text>
 													</Box>
 												</Box>
-												<Text size="sm" c="black">{line.km} km</Text>
+												<Text size={textSize} c="black">{line.km} km</Text>
 											</>
+										) : item.Druh_Predmetu === "M" && idx === 0 ? (
+											<Box pos="absolute" bottom="-7px" w='120%'>
+												<Text ta="center" fw={700} size={textSize} c="black"
+													  style={{
+														  transform: `scaleX(${scaleCompressed})`,
+														  transformOrigin: 'center'
+													  }}
+												>
+													{renderTextContent(true)}
+												</Text>
+											</Box>
 										) : (
-											<Text ta="center" fw={700} size="sm" c="black"
+											<Text ta="center" fw={700} size={textSize} c="black"
 												  style={{
 													  transform: `scaleX(${scaleNormal})`,
 													  transformOrigin: 'center'

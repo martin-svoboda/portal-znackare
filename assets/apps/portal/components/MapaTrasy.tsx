@@ -124,7 +124,7 @@ function getMapyCzRouteUrl(points, mapset, type) {
 	);
 }
 
-export function MapaTrasy({data: {points, route, druhPresunu = 'PZT'}}) {
+export function MapaTrasy({data: {title = '', points, route, druhPresunu = 'PZT'}}) {
 	// Mapování druhPresunu na mapset a type pro Mapy.cz
 	const mapset = druhPresunu === "LZT" ? "winter" : "outdoor";
 	const type = druhPresunu === "CZT" ? "bike_mountain" :
@@ -139,14 +139,14 @@ export function MapaTrasy({data: {points, route, druhPresunu = 'PZT'}}) {
 
 	useEffect(() => {
 		if (!route || !validPoints || validPoints.length < 2) return;
-		
+
 		// Pro lyžařské trasy nezobrazujeme routing
 		if (druhPresunu === 'LZT') {
 			setRouteCoords([]);
 			setLoading(false);
 			return;
 		}
-		
+
 		setLoading(true);
 		setError(null);
 
@@ -216,11 +216,10 @@ export function MapaTrasy({data: {points, route, druhPresunu = 'PZT'}}) {
 
 	const alertIcon = <IconAlertTriangleFilled/>;
 
-// TODO: cyklomapu a cyklohledání při CZT a zimní mapu a s ližařským přesunem pro LZT
 	return (
 		<Box style={{minHeight: height, width: "100%", position: "relative"}}>
 			<Group justify="space-between" mb="sm">
-				<Title order={3}>Mapa trasy</Title>
+				<Title order={3}>{title}</Title>
 				{!loading && route && validPoints.length >= 2 && (
 					<Button
 						leftSection={<IconMapShare size={14}/>}
@@ -301,17 +300,16 @@ export function MapaTrasy({data: {points, route, druhPresunu = 'PZT'}}) {
 						)}
 						<FitBounds points={validPoints}/>
 					</MapContainer>
-					{druhPresunu === 'LZT' ? (
+					{route && routeCoords.length > 1 ? druhPresunu === 'LZT' ? (
 						<Alert variant="light" color="blue" icon={alertIcon}>
-							Pro lyžařské trasy se zobrazují pouze pozice TIMů. Trasa se nekreslí z důvodu nekompatibility s routing API.
-							Na zimní mapě jsou zobrazeny lyžařské trasy pro orientaci.
+							Pro lyžařské trasy se zobrazují pouze pozice TIM. Trasa se neznázorňuje z důvodu nekompatibility s vyhledávánim tras.
+							Pro orientaci jsou aktuální lyžařské trasy vyobrazeny na mapě.
 						</Alert>
 					) : (
 						<Alert variant="light" color="yellow" icon={alertIcon}>
-							Mapa je pouze orientační a nemusí zcela souhlasit s trasou (hledá nejkratší cestu mezi
-							dostupnými TIM). Vždy dbejte na strávné umístění trasy i prvků.
+							Mapa je pouze orientační a nemusí zcela souhlasit s trasou. Vždy dbejte na strávné umístění trasy i prvků.
 						</Alert>
-					)}
+					) : null}
 				</>
 			)}
 			{error && <Alert variant="light" color="red" icon={alertIcon}> {error} </Alert>}

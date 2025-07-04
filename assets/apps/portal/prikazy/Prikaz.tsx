@@ -204,6 +204,9 @@ const Prikaz = () => {
 	const [showPrintPreview, setShowPrintPreview] = useState(false);
 
 	useEffect(() => {
+		// Počkej až bude intAdr dostupný
+		if (!intAdr) return;
+
 		setLoading(true);
 		apiRequest("/prikaz", "GET", {int_adr: intAdr, id})
 			.then(result => {
@@ -229,6 +232,17 @@ const Prikaz = () => {
 		() => groupByEvCiTIM(tableData),
 		[tableData]
 	);
+
+	// Detekce speciálního stavu - jedna položka bez EvCi_TIM se Stav a Popis
+	const specialAlert = useMemo(() => {
+		if (predmety.length === 1 && !predmety[0].EvCi_TIM && predmety[0].Stav && predmety[0].Popis) {
+			return {
+				title: predmety[0].Stav,
+				message: predmety[0].Popis
+			};
+		}
+		return null;
+	}, [predmety]);
 
 	const soubeh = useMemo(() => {
 		if (head?.Druh_ZP !== "O" || !Array.isArray(predmety)) return [];
@@ -284,6 +298,7 @@ const Prikaz = () => {
 		const druhPresunu = firstUsek?.Druh_Presunu;
 
 		return {
+			title: head?.Druh_ZP == "O" ? "Mapa trasy" : "Mapa TIM",
 			points: mapPoints,
 			route: "O" === head?.Druh_ZP,
 			druhPresunu: druhPresunu || "PZT"
@@ -494,7 +509,13 @@ const Prikaz = () => {
 
 				<Card shadow="sm" padding="sm" mb="xl">
 					<Title order={3} mb="sm">Informační místa na trase</Title>
-					<MantineReactTable table={table}/>
+					{specialAlert ? (
+						<Alert variant="light" color="red" mb="md" title={specialAlert.title} icon={<IconAlertTriangleFilled />}>
+							{specialAlert.message}
+						</Alert>
+					) : (
+						<MantineReactTable table={table}/>
+					)}
 				</Card>
 				{mapPoints.length > 0 && (
 					<Card shadow="sm" mb="xl">
