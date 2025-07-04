@@ -50,7 +50,7 @@ function isValidPoint(point) {
 }
 
 // Tvorba správné URL pro routing API
-function buildMapyRouteUrl(body, apiKey) {
+function buildMapyRouteUrl(body, apiKey, type) {
 	if (body.length < 2) throw new Error("Musí být alespoň dva body!");
 	const [start, ...rest] = body;
 	const end = rest.length ? rest[rest.length - 1] : start;
@@ -60,7 +60,7 @@ function buildMapyRouteUrl(body, apiKey) {
 	url.searchParams.append("start", `${start.lat}`);
 	url.searchParams.append("end", `${end.lon}`);
 	url.searchParams.append("end", `${end.lat}`);
-	url.searchParams.append("routeType", "foot_fast");
+	url.searchParams.append("routeType", `${type}`);
 	url.searchParams.append("lang", "cs");
 	url.searchParams.append("format", "geojson");
 	url.searchParams.append("avoidToll", "false");
@@ -72,13 +72,13 @@ function buildMapyRouteUrl(body, apiKey) {
 }
 
 // Tvorba odkazu pro jeden bod (marker):
-function getMapyCzShowMapUrl(lon, lat) {
+function getMapyCzShowMapUrl(lon, lat, mapset) {
 	if (typeof lon !== "number" || typeof lat !== "number") return null;
-	return `https://mapy.cz/fnc/v1/showmap?mapset=outdoor&center=${lon},${lat}&zoom=16&marker=true`;
+	return `https://mapy.cz/fnc/v1/showmap?mapset=${mapset}&center=${lon},${lat}&zoom=16&marker=true`;
 }
 
 // Tvorba odkazu pro trasu (start, end, waypoints):
-function getMapyCzRouteUrl(points) {
+function getMapyCzRouteUrl(points, mapset, type) {
 	if (!Array.isArray(points) || points.length < 2) return null;
 	const [start, ...rest] = points;
 	const end = rest.length ? rest[rest.length - 1] : start;
@@ -88,28 +88,28 @@ function getMapyCzRouteUrl(points) {
 		waypoints.map(w => `${w.lon},${w.lat}`).join(";")
 		: "";
 	return (
-		`https://mapy.cz/fnc/v1/route?mapset=outdoor` +
+		`https://mapy.cz/fnc/v1/route?mapset=` + mapset +
 		`&start=${start.lon},${start.lat}` +
 		`&end=${end.lon},${end.lat}` +
-		`&routeType=foot_fast` +
+		`&routeType=` + type +
 		waypointsParam
 	);
 }
 
-export function MapaTrasy({body, route}) {
+export function MapaTrasy({data: {points, route, mapset = 'outdoor', type = 'foot_fast' }}) {
 	const [routeCoords, setRouteCoords] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
 
 	// Rozdělení bodů na platné/neplatné
-	const validPoints = body.filter(isValidPoint);
-	const invalidPoints = body.filter(p => !isValidPoint(p));
+	const validPoints = points.filter(isValidPoint);
+	const invalidPoints = points.filter(p => !isValidPoint(p));
 
 	useEffect(() => {
 		if (!route || !validPoints || validPoints.length < 2) return;
 		setLoading(true);
 		setError(null);
-		const url = buildMapyRouteUrl(validPoints, MAPY_API_KEY);
+		const url = buildMapyRouteUrl(validPoints, MAPY_API_KEY, type);
 		fetch(url)
 			.then(r => {
 				if (!r.ok) throw new Error("Chyba API");
@@ -153,7 +153,7 @@ export function MapaTrasy({body, route}) {
 						leftSection={<IconMapShare size={14}/>}
 						component="a"
 						target="_blank"
-						href={getMapyCzRouteUrl(validPoints)}
+						href={getMapyCzRouteUrl(validPoints, mapset, type)}
 						color="green"
 						variant="outline"
 						size="sm"
@@ -187,7 +187,7 @@ export function MapaTrasy({body, route}) {
 										leftSection={<IconMapShare size={14}/>}
 										component="a"
 										target="_blank"
-										href={getMapyCzShowMapUrl(point.lon, point.lat)}
+										href={getMapyCzShowMapUrl(point.lon, point.lat, mapset)}
 										color="green"
 										variant="outline"
 										size="compact-xs"
@@ -213,7 +213,7 @@ export function MapaTrasy({body, route}) {
 										leftSection={<IconMapShare size={14}/>}
 										component="a"
 										target="_blank"
-										href={getMapyCzShowMapUrl(point.lon, point.lat)}
+										href={getMapyCzShowMapUrl(point.lon, point.lat, mapset)}
 										color="green"
 										variant="outline"
 										size="compact-xs"

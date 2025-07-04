@@ -3,13 +3,14 @@ export function barvaDlePresunu(val: string | undefined) {
 	const v = val.trim().toUpperCase();
 	switch (v) {
 		case "PZT":
-			return "#f5f5f5";  // bílá (RAL 1013 - perlová bílá)
+			return "#ffffff";  // bílá (RAL 1013 - perlová bílá)
 		case "LZT":
 			return "#f7951d";  // oranžová (RAL 2009 - dopravní oranžová)
 		case "CZT":
+		case "CZS":
 			return "#ffe000";  // žlutá (RAL 1003 - signální žlutá)
 		default:
-			return "#f5f5f5";     // fallback (bílá)
+			return "#ffffff";     // fallback (bílá)
 	}
 }
 
@@ -28,7 +29,7 @@ export function barvaDleJmena(val: string | undefined) {
 		case "žlutá":
 			return "#ffe000";   // RAL 1003 (žlutá signální)
 		case "bílá":
-			return "#f5f5f5";   // RAL 1013 (bílá perlová)
+			return "#ffffff";   // RAL 1013 (bílá perlová)
 		case "oranžová":
 			return "#f7951d";   // RAL 2009 (oranžová dopravní)
 		case "khaki":
@@ -52,7 +53,7 @@ export function barvaDleKodu(val: string | undefined) {
 		case "ZL":
 			return "#ffe000";   // RAL 1003 (žlutá signální)
 		case "BI":
-			return "#f5f5f5";   // RAL 1013 (bílá perlová)
+			return "#ffffff";   // RAL 1013 (bílá perlová)
 		case "KH":
 			return "#6A5F31";   // RAL 7008 (Khaki Gray)
 		case "BE":

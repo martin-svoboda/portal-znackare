@@ -185,7 +185,18 @@ const Prikaz = () => {
 		)
 	;
 
-	const mapRoute = "O" === head?.Druh_ZP;
+	const mapData = useMemo(() => {
+		const firstUsek = useky?.[0];
+		const druhPresunu = firstUsek?.Druh_Presunu;
+		
+		return {
+			points: mapPoints,
+			route: "O" === head?.Druh_ZP,
+			mapset: druhPresunu === "LZT" ? "winter" : "outdoor",
+			type: druhPresunu === "CZT" ? "bike_mountain" : 
+				  druhPresunu === "CZS" ? "bike_road" : "foot_fast"
+		};
+	}, [mapPoints, head?.Druh_ZP, useky]);
 
 	const columns = useMemo<MRT_ColumnDef<any>[]>(
 		() => [
@@ -384,7 +395,7 @@ const Prikaz = () => {
 						{loading ? (
 							<Loader/>
 						) : (
-							<MapaTrasy body={mapPoints} route={mapRoute}/>
+							<MapaTrasy data={mapData}/>
 						)}
 					</Card>
 				)}

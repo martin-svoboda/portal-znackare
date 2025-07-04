@@ -41,6 +41,7 @@ const NahledTim = ({item}: { item: any }) => {
 			case "LZT":
 				return "orange.5";
 			case "CZT":
+			case "CZS":
 				return "yellow.4";
 			default:
 				return "orange.0";
