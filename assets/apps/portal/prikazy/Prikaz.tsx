@@ -13,9 +13,11 @@ import {
 	Divider,
 	Paper,
 	Flex,
-	Table, Button
+	Table,
+	Button,
+	Alert
 } from "@mantine/core";
-import {IconPrinter} from "@tabler/icons-react";
+import {IconAlertTriangleFilled, IconPrinter} from "@tabler/icons-react";
 import {useParams, useNavigate} from "react-router-dom";
 import {apiRequest} from "../shared/api";
 import {notifications} from "@mantine/notifications";
@@ -70,6 +72,61 @@ const breadcrumb = [
 
 const isNezpracovany = (stav) => stav === 'Přidělený' || stav === 'Vystavený';
 
+// Funkce pro validaci jednoho předmětu
+function validateSingleItem(item) {
+	const errors: string[] = [];
+
+	// Chybí Predmet_Index
+	if (!item.Predmet_Index) {
+		errors.push("Neznámý index předmětu");
+	}
+
+	// Neznámý Druh_Predmetu
+	if (!item.Druh_Predmetu) {
+		errors.push("Neznámý druh předmětu");
+	}
+
+	// Pro směrovky (S nebo D)
+	if (item.Druh_Predmetu === 'S' || item.Druh_Predmetu === 'D') {
+		if (!item.Druh_Presunu) {
+			errors.push("Směrovka pro neznámý druh přesunu");
+		}
+
+		if (!item.Smerovani) {
+			errors.push("Směrovka bez identifikace směrování");
+		}
+	}
+
+	// Pro hlavní směrovky
+	if (item.Druh_Predmetu === 'S') {
+		if (!item.Barva) {
+			errors.push("Směrovka bez identifikace barvy");
+		}
+
+		if (!item.Druh_Odbocky_Kod && !item.Druh_Znaceni_Kod) {
+			errors.push("Směrovka bez identifikace odbočky nebo druhu značení");
+		}
+	}
+
+	return errors;
+}
+
+// Funkce pro validaci dat předmětů
+function validatePredmety(predmety) {
+	const errors: string[] = [];
+
+	predmety.forEach((item, index) => {
+		const itemId = item.EvCi_TIM + (item.Predmet_Index || '?');
+		const itemErrors = validateSingleItem(item);
+
+		itemErrors.forEach(error => {
+			errors.push(`${itemId}: ${error}`);
+		});
+	});
+
+	return errors;
+}
+
 // Funkce pro řazení značek podle priority
 function sortZnacky(items) {
 	// Pořadí priorit
@@ -111,26 +168,22 @@ function sortZnacky(items) {
 const PrikazUseky = ({useky}: { useky: any[] }) => {
 	const rows = useky.map((usek) => (
 		<Table.Tr key={usek.Kod_ZU}>
-			<Table.Td><Znacka color={usek.Barva_Kod} move={usek.Druh_Presunu} shape={usek.Druh_Odbocky_Kod || usek.Druh_Znaceni_Kod} size={30}/></Table.Td>
+			<Table.Td><Znacka color={usek.Barva_Kod} move={usek.Druh_Presunu}
+							  shape={usek.Druh_Odbocky_Kod || usek.Druh_Znaceni_Kod} size={30}/></Table.Td>
 			<Table.Td>{replaceTextWithIcons(usek.Nazev_ZU, 14)}</Table.Td>
-			<Table.Td>{formatKm(usek.Delka_ZU)} Km</Table.Td>
-			<Table.Td><Badge autoContrast color={barvaDleKodu(usek.Barva_Kod)}>{usek.Barva_Naz}</Badge></Table.Td>
-			<Table.Td>{usek.Druh_Odbocky || usek.Druh_Znaceni}</Table.Td>
+			<Table.Td>
+				<Group gap="xs" justify="space-between" wrap="wrap">
+					{formatKm(usek.Delka_ZU)} Km
+					<Badge autoContrast color={barvaDleKodu(usek.Barva_Kod)}>{usek.Barva_Naz}</Badge>
+					{usek.Druh_Odbocky || usek.Druh_Znaceni}
+				</Group>
+			</Table.Td>
 		</Table.Tr>
 	));
 
 	return (
 		<>
 			<Table>
-				<Table.Thead>
-					<Table.Tr>
-						<Table.Th></Table.Th>
-						<Table.Th>Název úseku</Table.Th>
-						<Table.Th>Délka</Table.Th>
-						<Table.Th>Barva</Table.Th>
-						<Table.Th>Druh</Table.Th>
-					</Table.Tr>
-				</Table.Thead>
 				<Table.Tbody>{rows}</Table.Tbody>
 			</Table>
 		</>
@@ -142,7 +195,7 @@ const Prikaz = () => {
 	const {getIntAdr} = useAuth();
 	const intAdr = getIntAdr();
 	const navigate = useNavigate();
-	const { generatePDF, isGenerating } = usePdfGenerator();
+	const {generatePDF, isGenerating} = usePdfGenerator();
 
 	const [head, setHead] = useState<any>(null);
 	const [predmety, setPredmety] = useState<any[]>([]);
@@ -299,7 +352,7 @@ const Prikaz = () => {
 			expanded: {},
 			columnVisibility: {
 				NP: window.innerWidth > 768,
-				Stav_TIM: window.innerWidth > 768,
+				Stav_TIM_Nazev: window.innerWidth > 768,
 			}
 		},
 		mantineTableProps: {
@@ -318,6 +371,8 @@ const Prikaz = () => {
 				<Text size="sm" c="dimmed" hiddenFrom="sm">Stav: {row.original.Stav_TIM_Nazev}</Text>
 				<Stack gap="sm">
 					{row.original.items?.map((item: any, i: number) => {
+						const itemErrors = validateSingleItem(item);
+						const alertIcon = <IconAlertTriangleFilled/>;
 
 						return (
 							<>
@@ -326,7 +381,6 @@ const Prikaz = () => {
 									<NahledTim item={item}/>
 									<Flex
 										gap="md"
-										justify="center"
 										wrap="wrap"
 									>
 										<Box>
@@ -352,6 +406,15 @@ const Prikaz = () => {
 											<Text size="sm" c="dimmed">{item.Druh_Presunu} {item.Druh_Znaceni}</Text>
 											<Text size="sm">ID: {item.EvCi_TIM + item.Predmet_Index}</Text>
 										</Box>
+										{itemErrors.length > 0 && (
+											<Alert variant="light" color="red" size="sm" mb="sm" icon={alertIcon}>
+												<ul style={{margin: 0, paddingLeft: '20px'}}>
+													{itemErrors.map((error, index) => (
+														<li key={index}>{error}</li>
+													))}
+												</ul>
+											</Alert>
+										)}
 									</Flex>
 								</Flex>
 							</>
@@ -389,7 +452,7 @@ const Prikaz = () => {
 						</Button>
 						<Button
 							variant="outline"
-							leftSection={<IconPrinter size={16} />}
+							leftSection={<IconPrinter size={16}/>}
 							onClick={handlePrintPDF}
 							loading={isGenerating}
 						>
@@ -413,18 +476,22 @@ const Prikaz = () => {
 							<>
 								<Divider my="xs"/>
 
-								<Group gap="xs" wrap="wrap">
+								<Group gap="sm" wrap="wrap">
 									<Text fw={700} fz="md">
 										Možný souběh/křížení tras:
 									</Text>
-									{soubeh.map((row, index) => (
-										<Znacka color={row.Barva_Kod} move={row.Druh_Presunu} shape={row.Druh_Odbocky_Kod || row.Druh_Znaceni_Kod} size={30}/>
-									))}
+									<Group gap="xs" wrap="wrap">
+										{soubeh.map((row, index) => (
+											<Znacka color={row.Barva_Kod} move={row.Druh_Presunu}
+													shape={row.Druh_Odbocky_Kod || row.Druh_Znaceni_Kod} size={30}/>
+										))}
+									</Group>
 								</Group>
 							</>
 						)}
 					</Card>
 				}
+
 				<Card shadow="sm" padding="sm" mb="xl">
 					<Title order={3} mb="sm">Informační místa na trase</Title>
 					<MantineReactTable table={table}/>

@@ -57,8 +57,8 @@ const NahledTim = ({item}: { item: any }) => {
 	}
 	if (showArrow && direction === "L") {
 		itemStyle = {
-			padding: "5px 5px 5px 45px",
-			clipPath: "polygon(40px 0, 100% 0, 100% 100%, 40px 100%, 0px 50%)"
+			padding: "5px 5px 5px 50px",
+			clipPath: "polygon(45px 0, 100% 0, 100% 100%, 45px 100%, 0px 50%)"
 		}
 		shapeStyle = {
 			left: "0",
@@ -68,8 +68,8 @@ const NahledTim = ({item}: { item: any }) => {
 	}
 	if (showArrow && direction === "P") {
 		itemStyle = {
-			padding: "5px 45px 5px 5px",
-			clipPath: "polygon(calc(100% - 40px) 0, 100% 50%, calc(100% - 40px) 100%, 0 100%, 0 0)"
+			padding: "5px 50px 5px 5px",
+			clipPath: "polygon(calc(100% - 45px) 0, 100% 50%, calc(100% - 45px) 100%, 0 100%, 0 0)"
 		}
 		shapeStyle = {
 			right: "0",
@@ -100,7 +100,7 @@ const NahledTim = ({item}: { item: any }) => {
 				</Box>}
 				<Stack gap={0}>
 					<Flex
-						w="200"
+						w="210"
 						mih="60"
 						gap={0}
 						justify="center"
