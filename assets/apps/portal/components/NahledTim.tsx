@@ -1,8 +1,8 @@
 import React, {useRef, useLayoutEffect, useState} from "react";
-import {Paper, Flex, Group, Text, Box} from "@mantine/core";
+import {Paper, Flex, Group, Text, Box, Stack} from "@mantine/core";
 import {formatKm} from "../shared/formatting";
 import {TimArrowShape} from "./TimArrowShape"; // Importuj svoji komponentu
-import { barvaDleKodu} from "../shared/colors";
+import {barvaDleKodu} from "../shared/colors";
 import {replaceTextWithIcons} from "../shared/textIconReplacer";
 
 function getItemLines(item: any) {
@@ -98,86 +98,88 @@ const NahledTim = ({item}: { item: any }) => {
 				>
 					<TimArrowShape color={vedouciBarva} shape={item.Druh_Odbocky_Kod || item.Druh_Znaceni_Kod}/>
 				</Box>}
-				<Flex
-					w="200"
-					mih="60"
-					gap={0}
-					justify="center"
-					align="center"
-					direction="column"
-				>
-					{lines.length > 0 ? (
-						lines.map((line, idx) => {
-							// Konstanty pro scale transformaci
-							const longTextThreshold = 18;
-							const scaleCompressed = 0.75;
-							const scaleNormal = 0.85;
-							const currentScale = line?.text?.length > longTextThreshold ? scaleCompressed : scaleNormal;
+				<Stack gap={0}>
+					<Flex
+						w="200"
+						mih="60"
+						gap={0}
+						justify="center"
+						align="center"
+						direction="column"
+					>
+						{lines.length > 0 ? (
+							lines.map((line, idx) => {
+								// Konstanty pro scale transformaci
+								const longTextThreshold = 18;
+								const scaleCompressed = 0.75;
+								const scaleNormal = 0.85;
+								const currentScale = line?.text?.length > longTextThreshold ? scaleCompressed : scaleNormal;
 
-							// Společná funkce pro renderování textu
-							const renderTextContent = () => line?.text?.split(/(\([^)]*\))/).flatMap((part, i) => {
-								if (part.startsWith('(') && part.endsWith(')')) {
-									return <small key={i}>{part}</small>;
-								}
-								// Použij novou globální funkci pro nahrazení ikon
-								return <span key={i}>{replaceTextWithIcons(part, 10)}</span>;
-							});
+								// Společná funkce pro renderování textu
+								const renderTextContent = () => line?.text?.split(/(\([^)]*\))/).flatMap((part, i) => {
+									if (part.startsWith('(') && part.endsWith(')')) {
+										return <small key={i}>{part}</small>;
+									}
+									// Použij novou globální funkci pro nahrazení ikon
+									return <span key={i}>{replaceTextWithIcons(part, 10)}</span>;
+								});
 
-							return (
-								<Group
-									key={idx}
-									justify={line.km ? "space-between" : "center"}
-									w="100%"
-									gap={0}
-									pos="relative"
-									style={{minHeight: lines.length == 1 ? '40px' : 'auto'}}
-								>
-									{line.km ? (
-										<>
-											<Box style={{
-												display: 'flex',
-												justifyContent: 'flex-start',
-												flex: 1,
-											}}>
-												<Box pos="absolute" top="0" w='120%'>
-													<Text fw={700} size="sm" c="black"
-														style={{
-															transform: `scaleX(${currentScale})`,
-															whiteSpace: 'nowrap',
-															transformOrigin: 'left center'
-														}}
-													>
-														{renderTextContent()}
-													</Text>
+								return (
+									<Group
+										key={idx}
+										justify={line.km ? "space-between" : "center"}
+										w="100%"
+										gap={0}
+										pos="relative"
+									>
+										{line.km ? (
+											<>
+												<Box style={{
+													display: 'flex',
+													justifyContent: 'flex-start',
+													flex: 1,
+												}}>
+													<Box pos="absolute" top="0" w='120%'>
+														<Text fw={700} size="sm" c="black"
+															  style={{
+																  transform: `scaleX(${currentScale})`,
+																  whiteSpace: 'nowrap',
+																  transformOrigin: 'left center'
+															  }}
+														>
+															{renderTextContent()}
+														</Text>
+													</Box>
 												</Box>
-											</Box>
-											<Text size="sm" c="black">{line.km} km</Text>
-										</>
-									) : (
-										<Text ta="center" fw={700} size="sm" c="black"
-											style={{
-												transform: `scaleX(${scaleNormal})`,
-												transformOrigin: 'center'
-											}}
-										>
-											{renderTextContent()}
-										</Text>
-									)}
-								</Group>
-							);
-						})
-					) : (
-						<Text size="sm" c="dimmed" ta="center">Žádný popis</Text>
-					)}
+												<Text size="sm" c="black">{line.km} km</Text>
+											</>
+										) : (
+											<Text ta="center" fw={700} size="sm" c="black"
+												  style={{
+													  transform: `scaleX(${scaleNormal})`,
+													  transformOrigin: 'center'
+												  }}
+											>
+												{renderTextContent()}
+											</Text>
+										)}
+									</Group>
+								);
+							})
+						) : (
+							<Text size="sm" c="dimmed" ta="center">Žádný popis</Text>
+						)}
+					</Flex>
 					<Group
 						justify="space-between"
 						w="100%"
 						gap={0}
+						mih={16}
 					>
 						<Text ta="center" size="xs" c="black">{item.Rok_Vyroby}</Text>
 						<Text ta="right" size="xs" c="black">{item.EvCi_TIM + item.Predmet_Index}</Text>
 					</Group>
-				</Flex>
+				</Stack>
 			</Paper>
 		</Flex>
 	);

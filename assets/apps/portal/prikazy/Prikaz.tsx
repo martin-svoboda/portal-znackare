@@ -70,6 +70,44 @@ const breadcrumb = [
 
 const isNezpracovany = (stav) => stav === 'Přidělený' || stav === 'Vystavený';
 
+// Funkce pro řazení značek podle priority
+function sortZnacky(items) {
+	// Pořadí priorit
+	const druhPresunuOrder = ['CZT', 'LZT', 'PZT', 'VZT'];
+	const druhZnaceniKodOrder = ['PA', 'CT', 'MI', 'NS', 'SN'];
+	const barvaKodOrder = ['CE', 'MO', 'ZE', 'ZL', 'BI'];
+
+	// Funkce pro získání indexu v pořadí (nižší = vyšší priorita)
+	const getDruhPresunuIndex = (item) => {
+		const index = druhPresunuOrder.indexOf(item.Druh_Presunu);
+		return index === -1 ? 999 : index;
+	};
+
+	const getDruhZnaceniKodIndex = (item) => {
+		const kod = item.Druh_Znaceni_Kod;
+		const index = druhZnaceniKodOrder.indexOf(kod);
+		return index === -1 ? 999 : index;
+	};
+
+	const getBarvaKodIndex = (item) => {
+		const index = barvaKodOrder.indexOf(item.Barva_Kod);
+		return index === -1 ? 999 : index;
+	};
+
+	return items.sort((a, b) => {
+		// 1. Řazení podle Druh_Presunu
+		const presunDiff = getDruhPresunuIndex(a) - getDruhPresunuIndex(b);
+		if (presunDiff !== 0) return presunDiff;
+
+		// 2. Řazení podle Druh_Znaceni_Kod
+		const znaceniDiff = getDruhZnaceniKodIndex(a) - getDruhZnaceniKodIndex(b);
+		if (znaceniDiff !== 0) return znaceniDiff;
+
+		// 3. Řazení podle Barva_Kod
+		return getBarvaKodIndex(a) - getBarvaKodIndex(b);
+	});
+}
+
 const PrikazUseky = ({useky}: { useky: any[] }) => {
 	const rows = useky.map((usek) => (
 		<Table.Tr key={usek.Kod_ZU}>
@@ -142,7 +180,7 @@ const Prikaz = () => {
 	const soubeh = useMemo(() => {
 		if (head?.Druh_ZP !== "O" || !Array.isArray(predmety)) return [];
 		const set = new Set();
-		return predmety
+		const uniqueItems = predmety
 			.filter(item => item.Barva && item.Druh_Presunu)
 			.map(item => ({
 				Barva: item.Barva,
@@ -159,6 +197,9 @@ const Prikaz = () => {
 				set.add(key);
 				return true;
 			});
+
+		// Seřazení podle priorit
+		return sortZnacky(uniqueItems);
 	}, [predmety]);
 
 	const delka = useMemo(() => {
