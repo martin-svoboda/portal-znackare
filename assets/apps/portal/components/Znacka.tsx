@@ -49,8 +49,6 @@ export const Znacka = ({
 	let upozorneni = barvaDlePresunu(move);
 	let vedouci = barvaDleKodu(color);
 
-	console.log("Znacka", color, shape, move, size);
-	console.log("Znacka barvy", upozorneni, vedouci);
 	if (shape === "NS" || shape === "SN") {
 		upozorneni = barvaDlePresunu("PZT");
 		vedouci = barvaDleKodu("ZE");

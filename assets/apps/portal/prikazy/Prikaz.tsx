@@ -192,9 +192,7 @@ const Prikaz = () => {
 		return {
 			points: mapPoints,
 			route: "O" === head?.Druh_ZP,
-			mapset: druhPresunu === "LZT" ? "winter" : "outdoor",
-			type: druhPresunu === "CZT" ? "bike_mountain" :
-				  druhPresunu === "CZS" ? "bike_road" : "foot_fast"
+			druhPresunu: druhPresunu || "PZT"
 		};
 	}, [mapPoints, head?.Druh_ZP, useky]);
 

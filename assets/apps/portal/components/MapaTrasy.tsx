@@ -7,6 +7,7 @@ import {IconAlertTriangleFilled, IconMapShare} from "@tabler/icons-react";
 
 // Mapy.cz API klíč
 const MAPY_API_KEY = "67fA8acT3ISVkTZEz3CYnTiXVo32Xvh1k1obif0B3d4";
+const OPEN_ROUTE_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjE5NjYyMDUwODI0NTQ5NmE5YTM2NTA0ZDM3MzU5YzVkIiwiaCI6Im11cm11cjY0In0=";
 
 // SVG pro platný marker (černý)
 const signSvg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="#000" d="M11 21v-3H6.825q-.4 0-.763-.15t-.637-.425L3.7 15.7q-.3-.3-.3-.7t.3-.7l1.725-1.725q.275-.275.638-.425t.762-.15H11v-2H5q-.425 0-.712-.288T4 9V5q0-.425.288-.712T5 4h6V3q0-.425.288-.712T12 2t.713.288T13 3v1h4.175q.4 0 .763.15t.637.425L20.3 6.3q.3.3.3.7t-.3.7l-1.725 1.725q-.275.275-.638.425t-.762.15H13v2h6q.425 0 .713.288T20 13v4q0 .425-.288.713T19 18h-6v3q0 .425-.288.713T12 22t-.712-.288T11 21"/></svg>`);
@@ -47,6 +48,32 @@ function isValidPoint(point) {
 		point.lat >= 48.5 && point.lat <= 51.2 &&
 		point.lon >= 12.0 && point.lon <= 19.0
 	);
+}
+
+// Map druhPresunu to OpenRouteService profiles
+function mapDruhPresunuToORSProfile(druhPresunu) {
+	const mapping = {
+		'PZT': 'foot-hiking',      // Pěší značené trasy
+		'LZT': 'foot-walking',     // Lyžařské trasy
+		'CZT': 'cycling-mountain', // Cyklotrasy terénní
+		'CZS': 'cycling-road'      // Cyklotrasy silniční
+	};
+	return mapping[druhPresunu] || 'foot-hiking';
+}
+
+// Build OpenRouteService routing request
+function buildORSRouteRequest(points, druhPresunu) {
+	if (points.length < 2) throw new Error("Musí být alespoň dva body!");
+
+	const profile = mapDruhPresunuToORSProfile(druhPresunu);
+	const coordinates = points.map(p => [p.lon, p.lat]);
+
+	return {
+		url: `https://api.openrouteservice.org/v2/directions/${profile}/geojson`,
+		body: {
+			coordinates: coordinates
+		}
+	};
 }
 
 // Tvorba správné URL pro routing API
@@ -96,7 +123,11 @@ function getMapyCzRouteUrl(points, mapset, type) {
 	);
 }
 
-export function MapaTrasy({data: {points, route, mapset = 'outdoor', type = 'foot_fast' }}) {
+export function MapaTrasy({data: {points, route, druhPresunu = 'PZT' }}) {
+	// Mapování druhPresunu na mapset a type pro Mapy.cz
+	const mapset = druhPresunu === "LZT" ? "winter" : "outdoor";
+	const type = druhPresunu === "CZT" ? "bike_mountain" :
+				 druhPresunu === "CZS" ? "bike_road" : "foot_fast";
 	const [routeCoords, setRouteCoords] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(null);
@@ -109,32 +140,65 @@ export function MapaTrasy({data: {points, route, mapset = 'outdoor', type = 'foo
 		if (!route || !validPoints || validPoints.length < 2) return;
 		setLoading(true);
 		setError(null);
-		const url = buildMapyRouteUrl(validPoints, MAPY_API_KEY, type);
-		fetch(url)
-			.then(r => {
-				if (!r.ok) throw new Error("Chyba API");
-				return r.json();
-			})
-			.then(data => {
-				let coords = [];
-				if (
-					data?.geometry?.geometry?.type === "LineString" &&
-					Array.isArray(data.geometry.geometry.coordinates)
-				) {
-					coords = data.geometry.geometry.coordinates.map(
-						([lon, lat]) => [lat, lon]
-					);
-				}
-				setRouteCoords(coords);
-				setLoading(false);
-			})
-			.catch(e => {
-				setError("Nepodařilo se načíst trasu.");
-				setRouteCoords([]);
-				setLoading(false);
-			});
+
+		// Try OpenRouteService first
+		const orsRequest = buildORSRouteRequest(validPoints, druhPresunu);
+
+		fetch(orsRequest.url, {
+			method: 'POST',
+			headers: {
+				'Authorization': OPEN_ROUTE_KEY,
+				'Content-Type': 'application/json',
+				'Accept': 'application/json, application/geo+json'
+			},
+			body: JSON.stringify(orsRequest.body)
+		})
+		.then(r => {
+			if (!r.ok) throw new Error("ORS API error");
+			return r.json();
+		})
+		.then(data => {
+			// Process ORS response
+			let coords = [];
+			if (data?.features?.[0]?.geometry?.coordinates) {
+				coords = data.features[0].geometry.coordinates.map(
+					([lon, lat]) => [lat, lon]
+				);
+			}
+			setRouteCoords(coords);
+			setLoading(false);
+		})
+		.catch(orsError => {
+			// Fallback to Mapy.cz API
+			console.warn('OpenRouteService failed, falling back to Mapy.cz:', orsError);
+
+			const url = buildMapyRouteUrl(validPoints, MAPY_API_KEY, type);
+			fetch(url)
+				.then(r => {
+					if (!r.ok) throw new Error("Chyba API");
+					return r.json();
+				})
+				.then(data => {
+					let coords = [];
+					if (
+						data?.geometry?.geometry?.type === "LineString" &&
+						Array.isArray(data.geometry.geometry.coordinates)
+					) {
+						coords = data.geometry.geometry.coordinates.map(
+							([lon, lat]) => [lat, lon]
+						);
+					}
+					setRouteCoords(coords);
+					setLoading(false);
+				})
+				.catch(e => {
+					setError("Nepodařilo se načíst trasu.");
+					setRouteCoords([]);
+					setLoading(false);
+				});
+		});
 		// eslint-disable-next-line
-	}, [JSON.stringify(validPoints), route]);
+	}, [JSON.stringify(validPoints), route, druhPresunu]);
 
 	const center = validPoints[0]
 		? [validPoints[0].lat, validPoints[0].lon]
@@ -172,7 +236,7 @@ export function MapaTrasy({data: {points, route, mapset = 'outdoor', type = 'foo
 						scrollWheelZoom={false}
 					>
 						<TileLayer
-							url={`https://api.mapy.cz/v1/maptiles/outdoor/256/{z}/{x}/{y}?apikey=${MAPY_API_KEY}`}
+							url={`https://api.mapy.cz/v1/maptiles/${mapset}/256/{z}/{x}/{y}?apikey=${MAPY_API_KEY}`}
 							attribution='Mapové podklady © <a href="https://www.seznam.cz/">Seznam.cz, a.s.</a> a další'
 						/>
 						{validPoints.map((point, i) => (
