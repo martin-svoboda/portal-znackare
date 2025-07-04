@@ -1,5 +1,5 @@
 import React from "react";
-import {barvaDlePresunu, barvaDleJmena, barvaDleKodu} from "../shared/colors";
+import {barvaDlePresunu, barvaDleKodu} from "../shared/colors";
 
 type ZnackaProps = {
 	color?: string; // Vedoucí barva (např. modrá)
@@ -58,7 +58,9 @@ export const Znacka = ({
 
 	switch (shape) {
 		case "PA":
-			// Tři pásy: horní a dolní upozorňovací, střední vedoucí, mezery 5 px
+		case "CT":
+		case "DO":
+			// pasova
 			return (
 				<svg width={size} height={size} viewBox="0 0 120 120">
 					<rect x={0} y={0} width={120} height={120} fill={barvaDleKodu("KH")}/>
@@ -68,93 +70,69 @@ export const Znacka = ({
 				</svg>
 			);
 		case "Z":
-			// Okolní čtverec s výřezem "hradu" (L tvar), mezera 5 bodů
-			// Vnitřní tvar: 60x60 na středu, vnější výřez: 70x70
+			// zricenina
 			return (
 				<svg width={size} height={size} viewBox="0 0 120 120">
-
-					<defs>
-						<clipPath id="clipHrad">
-							<polygon points="15,15 85,15 85,35 95,35 95,95 15,95"/>
-						</clipPath>
-					</defs>
 					<rect x={0} y={0} width={120} height={120} fill={barvaDleKodu("KH")}/>
-					<rect x={10} y={10} width={100} height={100} fill={upozorneni} clipPath="url(#clipHrad)"/>
-					<polygon points="20,20 80,20 80,30 90,30 90,90 20,90" fill={vedouci}/>
+					<path d="M60.981,60.835l0,-30l-30,-0l0,60l60,-0l0,-30l-30,-0Z" fill={vedouci}/>
+					<path
+						d="M110.981,10.822l-100,0l0,100l100,0l0,-100Zm-45.057,15.013l-39.943,-0l0,70l70,-0l0,-39.939l-30.057,0l0,-30.061Z"
+						fill={upozorneni}/>
 				</svg>
 			);
 		case "S":
-			// Pozadí: půlkruh průměr 70, vnitřní půlkruh 60, mezera 5px, spodní hrana na spodní straně čtverce
+			// studanka
 			return (
-				<svg width={size} height={size} viewBox="0 0 100 100">
-					{/* Pozadí s výřezem */}
-					<defs>
-						<clipPath id="clipStud">
-							<path d="M15,50 a35,35 0 1,0 70,0"/>
-						</clipPath>
-					</defs>
-					<rect x={0} y={0} width={100} height={100} fill={upozorneni} clipPath="url(#clipStud)"/>
-					{/* Vnitřní půlkruh */}
+				<svg width={size} height={size} viewBox="0 0 120 120">
+					<rect x={0} y={0} width={120} height={120} fill={barvaDleKodu("KH")}/>
 					<path
-						d="M20,55 a30,30 0 1,0 60,0"
-						fill={vedouci}
-					/>
+						d="M90.525,60.822l0,0.013c0,16.557 -13.443,30 -30,30c-16.557,-0 -30,-13.443 -30,-30l0,-0.013l60,0Z"
+						fill={vedouci}/>
+					<path
+						d="M110.525,10.822l-100,0l0,100l100,0l0,-100Zm-15.041,45c0,1.702 0.041,3.311 0.041,5.013c0,19.317 -15.683,35 -35,35c-19.317,-0 -35,-15.683 -35,-35l0,-5.013l69.959,0Z"
+						fill={upozorneni}/>
 				</svg>
 			);
 		case "V":
-			// Pozadí: rovnostranný trojúhelník stranou 70 (výška ≈ 60.6), vnitřní 60 (výška ≈ 52), mezera 5px, spodní hrana 15px odspodu
-			// Trojúhelník na střed, základna vodorovně
+			// Vrchol
 			return (
-				<svg width={size} height={size} viewBox="0 0 100 100">
-					{/* Pozadí s výřezem */}
-					<defs>
-						<clipPath id="clipVrchol">
-							<polygon points="50,14.7 85,75 15,75"/>
-						</clipPath>
-					</defs>
-					<rect x={0} y={0} width={100} height={100} fill={upozorneni} clipPath="url(#clipVrchol)"/>
-					{/* Vnitřní trojúhelník */}
-					<polygon
-						points="50,22.2 80,70 20,70"
-						fill={vedouci}
-					/>
+				<svg width={size} height={size} viewBox="0 0 120 120">
+					<rect x="0" y="0" width="120" height="120" fill={barvaDleKodu("KH")}/>
+					<path d="M60.948,35.835l30,55l-60,-0l30,-55Z" fill={vedouci}/>
+					<path
+						d="M110.948,10.822l-100,0l0,100l100,0l0,-100Zm-50,14.062l38.669,70.893l-77.337,0l38.668,-70.893Z"
+						fill={upozorneni}/>
 				</svg>
 			);
 		case "P":
-			// Vnitřní "ponorka": obdélník 100x60, nahoře mezera 5, dole mezera 5, na horní hraně dva čtverce 30x30 vlevo i vpravo, upozorňovací horní a dolní pruh
+			// pomníček
 			return (
-				<svg width={size} height={size} viewBox="0 0 100 100">
-					{/* Dolní upozorňovací pruh */}
-					<rect x={0} y={85} width={100} height={15} fill={upozorneni}/>
-					{/* Horní upozorňovací pruh + čtverce */}
-					<rect x={0} y={0} width={100} height={15} fill={upozorneni}/>
-					<rect x={0} y={15} width={30} height={30} fill={upozorneni}/>
-					<rect x={70} y={15} width={30} height={30} fill={upozorneni}/>
-					{/* Vnitřní ponorka */}
-					<rect x={0} y={65} width={100} height={30} fill={vedouci}/>
-					<rect x={35} y={20} width={30} height={30} fill={vedouci}/>
+				<svg width={size} height={size} viewBox="0 0 120 120">
+					<rect x="0" y="0" width="120" height="120" fill={barvaDleKodu("KH")}/>
+					<path d="M75.565,60.835l0,-30l-30,-0l0,30l-35,-0l0,30l100,-0l0,-30l-35,-0Z" fill={vedouci}/>
+					<path d="M110.565,55.835l0,-45.013l-100,0l0,45.013l30,-0l0,-30.013l40,0l0,30.013l30,-0Z"
+						  fill={upozorneni}/>
+					<rect x="10.565" y="95.835" width="100" height="15" fill={upozorneni}/>
 				</svg>
 			);
 		case "MI":
-			// Čtverec 100x100, rozdělený diagonálou s 5px mezerou
+			// místní
 			return (
-				<svg width={size} height={size} viewBox="0 0 100 100">
-					{/* Levý spodní trojúhelník (upozorňovací barva) */}
+				<svg width={size} height={size} viewBox="0 0 120 120">
+					<rect x="0" y="0" width="120" height="120" fill={barvaDleKodu("KH")}/>
 					<polygon
-						points="0,100 0,0 95,95 95,100"
+						points="10,110 10,10 105,105 105,110"
 						fill={upozorneni}
 					/>
-					{/* Pravý horní trojúhelník (vedoucí barva) */}
 					<polygon
-						points="100,0 100,100 5,5 5,0"
+						points="110,10 110,110 15,15 15,10"
 						fill={vedouci}
 					/>
 				</svg>
 			);
 		case "NS":
 		case "SN":
-			// Čtverec 100x100, diagonální pruh 30px ve vedoucí barvě, oddělený mezerou 5px,
-			// zbylé dva trojúhelníky upozorňovací barvy
+			// naučná
 			return (
 				<svg width={size} height={size} viewBox="0 0 120 120">
 					<rect x="0" y="0" width="120" height="120" fill={barvaDleKodu("KH")}/>
@@ -163,6 +141,15 @@ export const Znacka = ({
 						fill={vedouci}/>
 					<path
 						d="M10.048,38.416l71.716,71.716l-71.716,0l0,-71.716Zm100,43.432l-71.716,-71.716l71.716,0l0,71.716Z"
+						fill={upozorneni}/>
+				</svg>
+			);
+		case "VO":
+			// vozíčkář
+			return (
+				<svg width={size} height={size} viewBox="0 0 26 26">
+					<path
+						d="M16.717,22.218c-1.353,2.067 -3.689,3.433 -6.342,3.433c-4.181,0 -7.575,-3.394 -7.575,-7.575c-0,-2.91 1.643,-5.439 4.052,-6.707l0.437,2.925c-1.096,0.895 -1.796,2.257 -1.796,3.782c0,2.694 2.188,4.881 4.882,4.881c2.651,0 4.811,-2.117 4.88,-4.752l1.462,4.013Zm-10.465,-17.219c-0.195,-0.391 -0.304,-0.833 -0.304,-1.3c-0,-1.617 1.312,-2.93 2.929,-2.93c1.617,0 2.93,1.313 2.93,2.93c-0,1.465 -1.078,2.68 -2.483,2.896l0.636,4.184l5.916,-0.056l-0.023,2.403l-5.51,0.019l0.084,0.675l6.745,-0.003l3.01,8.478l2.61,-0.815l0.668,1.955l-5.327,1.621l-2.951,-8.397l-7.303,-0.005l-1.627,-11.655Z"
 						fill={upozorneni}/>
 				</svg>
 			);

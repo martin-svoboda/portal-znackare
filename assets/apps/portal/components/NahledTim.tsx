@@ -2,7 +2,7 @@ import React, {useRef, useLayoutEffect, useState} from "react";
 import {Paper, Flex, Group, Text, Box} from "@mantine/core";
 import {formatKm} from "../shared/formatting";
 import {TimArrowShape} from "./TimArrowShape"; // Importuj svoji komponentu
-import {barvaDleJmena, barvaDleKodu} from "../shared/colors";
+import { barvaDleKodu} from "../shared/colors";
 import {replaceTextWithIcons} from "../shared/textIconReplacer";
 
 function getItemLines(item: any) {

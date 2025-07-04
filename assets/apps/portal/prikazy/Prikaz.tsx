@@ -29,7 +29,7 @@ import {
 import {MRT_Localization_CS} from "mantine-react-table/locales/cs";
 import {BreadcrumbsNav} from "../shared/BreadcrumbsNav";
 import NahledTim from "../components/NahledTim";
-import {barvaMantine, barvaDleJmena, barvaDleKodu} from "../shared/colors";
+import {barvaDleKodu} from "../shared/colors";
 import {Znacka} from "../components/Znacka";
 import MapaTrasy from "../components/MapaTrasy";
 import {PrikazStavBadge} from "./PrikazStavBadge";
@@ -188,12 +188,12 @@ const Prikaz = () => {
 	const mapData = useMemo(() => {
 		const firstUsek = useky?.[0];
 		const druhPresunu = firstUsek?.Druh_Presunu;
-		
+
 		return {
 			points: mapPoints,
 			route: "O" === head?.Druh_ZP,
 			mapset: druhPresunu === "LZT" ? "winter" : "outdoor",
-			type: druhPresunu === "CZT" ? "bike_mountain" : 
+			type: druhPresunu === "CZT" ? "bike_mountain" :
 				  druhPresunu === "CZS" ? "bike_road" : "foot_fast"
 		};
 	}, [mapPoints, head?.Druh_ZP, useky]);

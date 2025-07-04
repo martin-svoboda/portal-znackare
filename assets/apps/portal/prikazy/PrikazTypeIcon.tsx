@@ -8,7 +8,7 @@ import {
 } from '@tabler/icons-react';
 import {Badge, ThemeIcon} from '@mantine/core';
 import {Znacka} from "../components/Znacka";
-import {barvaDleJmena} from "../shared/colors";
+import { barvaDleKodu} from "../shared/colors";
 
 type PrikazTypeIconProps = {
 	type: string;
@@ -29,7 +29,7 @@ export function PrikazTypeIcon({
 
 	return (
 		<ThemeIcon
-			color={barvaDleJmena("khaki")}
+			color={barvaDleKodu("KH")}
 			variant="outline"
 			style={{
 				width: `${size}px`,

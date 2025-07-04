@@ -14,20 +14,19 @@ export function barvaDlePresunu(val: string | undefined) {
 	}
 }
 
-// utils/colors.ts
-
+// staré - poučijte barvaDleKodu
 export function barvaDleJmena(val: string | undefined) {
 	if (!val) return "";
 	const v = val.trim().toLowerCase();
 	switch (v) {
 		case "červená":
-			return "#cc1122";   // RAL 3020 (červená signální) – přibližně #cc1122
+			return "#e50313";   // RAL 3020 (červená signální) – přibližně #cc1122
 		case "modrá":
-			return "#2277bb";   // RAL 5015 (modrá nebeská) – přibližně #2277bb
+			return "#1a6dff";   // RAL 5015 (modrá nebeská) – přibližně #2277bb
 		case "zelená":
-			return "#01876e";   // RAL 6024 (zelená dopravní) – přibližně #01876e
+			return "#009C00";   // RAL 6024 (zelená dopravní) – přibližně #01876e
 		case "žlutá":
-			return "#ffe000";   // RAL 1003 (žlutá signální)
+			return "#ffdd00";   // RAL 1003 (žlutá signální)
 		case "bílá":
 			return "#ffffff";   // RAL 1013 (bílá perlová)
 		case "oranžová":
@@ -45,13 +44,13 @@ export function barvaDleKodu(val: string | undefined) {
 	const v = val.trim().toUpperCase();
 	switch (v) {
 		case "CE":
-			return "#cc1122";   // RAL 3020 (červená signální) – přibližně #cc1122
+			return "#e50313";   // RAL 3020 (červená signální) – přibližně #cc1122
 		case "MO":
-			return "#2277bb";   // RAL 5015 (modrá nebeská) – přibližně #2277bb
+			return "#1a6dff";   // RAL 5015 (modrá nebeská) – přibližně #2277bb
 		case "ZE":
-			return "#01876e";   // RAL 6024 (zelená dopravní) – přibližně #01876e
+			return "#009C00";   // RAL 6024 (zelená dopravní) – přibližně #01876e
 		case "ZL":
-			return "#ffe000";   // RAL 1003 (žlutá signální)
+			return "#ffdd00";   // RAL 1003 (žlutá signální)
 		case "BI":
 			return "#ffffff";   // RAL 1013 (bílá perlová)
 		case "KH":

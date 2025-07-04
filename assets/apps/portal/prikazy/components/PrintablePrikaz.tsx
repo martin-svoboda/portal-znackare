@@ -4,7 +4,7 @@ import {formatKm, formatUsekType} from '../../shared/formatting';
 import {PrikazHead} from './PrikazHead';
 import NahledTim from '../../components/NahledTim';
 import {Znacka} from '../../components/Znacka';
-import {barvaDleJmena} from '../../shared/colors';
+import {barvaDleKodu} from '../../shared/colors';
 import {replaceTextWithIcons} from '../../shared/textIconReplacer';
 
 interface PrintablePrikazProps {
@@ -96,9 +96,9 @@ const PrintablePrikaz: React.FC<PrintablePrikazProps> = ({
 							<Text size="sm" c="black">{formatUsekType(usek.UsekZP_Typ)}</Text>
 							<Text size="sm" c="black">{formatKm(usek.Delka_ZU)} km</Text>
 							<Badge
-								color={barvaDleJmena(usek.Barva_Naz)}
+								color={barvaDleKodu(usek.Barva_Kod)}
 								variant="light"
-								style={{backgroundColor: barvaDleJmena(usek.Barva_Naz), color: 'white'}}
+								style={{backgroundColor: barvaDleKodu(usek.Barva_Kod), color: 'white'}}
 							>
 								{usek.Barva_Naz}
 							</Badge>
