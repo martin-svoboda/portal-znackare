@@ -6,7 +6,7 @@ import {
 	Text,
 	NavLink,
 	ActionIcon,
-	useMantineColorScheme, Button,
+	useMantineColorScheme, Button, useMantineTheme, Divider,
 } from "@mantine/core";
 import {useDisclosure} from "@mantine/hooks";
 import {
@@ -14,7 +14,7 @@ import {
 	IconMoon,
 	IconSun,
 	IconBooks,
-	IconFileDescription,
+	IconFileDescription, IconChecklist, IconUser, IconLogout,
 } from "@tabler/icons-react";
 import {Routes, Route, useNavigate, useLocation,} from "react-router-dom";
 import React, {useMemo} from "react";
@@ -24,24 +24,28 @@ import 'dayjs/locale/cs';
 // Set Czech locale globally for dayjs
 dayjs.locale('cs');
 
-import { useAuth } from "../auth/AuthContext";
+import {useAuth} from "../auth/AuthContext";
 import Dashboard from "../user/Dashboard";
 import Prikazy from "../prikazy/Prikazy";
 import Metodika from "../metodika/Metodika";
 import PostPage from "../content/PostPage";
 import MetodikaDetail from "../metodika/MetodikaDetail";
-import MetodikaTermOverview from "../metodika/MetodikaTermOverview";
 import {MetodikaProvider} from "../metodika/MetodikaContext";
-import UserMenu from "../auth/UserMenu";
 import {MetodikaTermsProvider} from "../metodika/MetodikaTermsContext";
 import Prikaz from "../prikazy/Prikaz";
 import HlaseniPrikazu from "../prikazy/HlaseniPrikazu";
 import Profil from "../user/Profil";
 import MetodikaTerm from "../metodika/MetodikaTerm";
+import UserWidget from "../auth/UserWidget";
 
 const staticNavItems = [
-	{path: "/", label: "Úvod", icon: IconHome2},
 	{path: "/metodika", label: "Metodika", icon: IconBooks},
+];
+
+const staticUserNavItems = [
+	{path: "/nastenka", label: "Moje nástěnka", icon: IconHome2},
+	{path: "/prikazy", label: "Příkazy", icon: IconChecklist},
+	{path: "/profil", label: "Profil", icon: IconUser},
 ];
 
 const ColorSchemeToggle = () => {
@@ -64,8 +68,9 @@ const ColorSchemeToggle = () => {
 const App: React.FC = () => {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const {logout, loggedIn} = useAuth();
+	const {logout, loggedIn, user} = useAuth();
 	const [opened, {toggle}] = useDisclosure();
+	const theme = useMantineTheme();
 
 	const isMetodikaDetail = location.pathname.startsWith("/metodika/") && location.pathname.split("/").length > 2;
 	const isActive = (path: string) => location.pathname === path;
@@ -77,14 +82,29 @@ const App: React.FC = () => {
 			label: item.title,
 			icon: IconFileDescription,
 		}));
-		return [...staticNavItems, ...customItems];
+		return [...customItems, ...staticNavItems];
 	}, []);
 
+	const NavLinkItem = ({item}) => {
+		return (
+			<NavLink
+				active={isActive(item.path)}
+				label={item.label}
+				onClick={() => {
+					navigate(item.path);
+					if (window.innerWidth < 992) toggle();
+				}}
+				leftSection={item.icon ? <item.icon size={20} stroke={1.2}/> :
+					<IconFileDescription size={20} stroke={1.2}/>}
+				aria-label={`Přejít na ${item.label}`}
+			/>
+		);
+	}
 
 	return (
 		<AppShell
 			header={{height: 60}}
-			navbar={{width: {sm: 0}, breakpoint: "sm", collapsed: {mobile: !opened}}}
+			navbar={{width: 300, breakpoint: 'md', collapsed: {mobile: !opened}}}
 			padding="md"
 		>
 			<AppShell.Header withBorder={false}>
@@ -96,36 +116,16 @@ const App: React.FC = () => {
 							size="sm"
 							aria-label={opened ? "Zavřít menu" : "Otevřít menu"}
 							title={opened ? "Zavřít menu" : "Otevřít menu"}
-							hiddenFrom="sm"
+							hiddenFrom="md"
 						/>
-						<Text fz={18} fw={600} component="h1" visibleFrom="md">
+						<Text fz={18} fw={600}>
 							Portál značkaře
 						</Text>
-						<Text fz={18} fw={600} component="h1" hiddenFrom="md">
-							PZ
-						</Text>
-					</Group>
-					<Group gap="0" visibleFrom="sm">
-						{menuItems.map((item) => (
-							<Button
-								key={item.path}
-								variant="subtle"
-								color="gray"
-								active={isActive(item.path)}
-								onClick={() => {
-									navigate(item.path);
-									//if (window.innerWidth < 768) toggle();
-								}}
-								aria-label={`Přejít na ${item.label}`}
-							>
-								{item.label}
-							</Button>
-						))}
 					</Group>
 					<Group>
 						<ColorSchemeToggle/>
 						{loggedIn ?
-							<UserMenu onSuccess={() => {}}/>
+							<UserWidget/>
 							:
 							<Button
 								color="blue"
@@ -138,24 +138,30 @@ const App: React.FC = () => {
 				</Flex>
 			</AppShell.Header>
 
-			<AppShell.Navbar p="md" withBorder={false} hiddenFrom="sm">
-				<Text fz={18} fw={600}>
-					Portál značkaře
-				</Text>
+			<AppShell.Navbar p="md" withBorder={false}>
+				<NavLinkItem item={{path: "/", label: "Úvod", icon: IconHome2}}/>
 				{menuItems.map((item) => (
-					<NavLink
-						key={item.path}
-						variant="subtle"
-						color="gray"
-						label={item.label}
-						active={isActive(item.path)}
-						onClick={() => {
-							navigate(item.path);
-							if (window.innerWidth < 768) toggle();
-						}}
-						aria-label={`Přejít na ${item.label}`}
-					/>
+					<NavLinkItem key={item.path} item={item}/>
 				))}
+				<Divider/>
+				{loggedIn &&
+					<>
+						{staticUserNavItems.map((item) => (
+							<NavLinkItem key={item.path} item={item}/>
+						))}
+						<Divider/>
+						<NavLink
+							label="Odhlásit se"
+							onClick={() => {
+								logout();
+								if (window.innerWidth < 992) toggle();
+							}}
+							leftSection={<IconLogout size={20} stroke={1.2}/>}
+							style={{color: theme.colors.red[6]}}
+							aria-label="Odhlásit se"
+						/>
+					</>
+				}
 			</AppShell.Navbar>
 
 			<AppShell.Main

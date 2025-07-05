@@ -35,16 +35,18 @@ type MethodicalFile = {
 
 // Helper – Ikona dle typu souboru
 const getFileIcon = (type: string) => {
+	const theme = useMantineTheme();
+
 	switch (type) {
 		case 'pdf':
-			return <IconFileTypePdf size={40} stroke={1} color="red.6"/>;
+			return <IconFileTypePdf size={40} stroke={1} color={theme.colors.red[6]}/>;
 		case 'doc':
-			return <IconFileTypeDoc size={40} stroke={1} color="blue.6"/>;
+			return <IconFileTypeDoc size={40} stroke={1} color={theme.colors.blue[6]}/>;
 		case 'docx':
-			return <IconFileTypeDocx size={40} stroke={1} color="blue.6"/>;
+			return <IconFileTypeDocx size={40} stroke={1} color={theme.colors.blue[6]}/>;
 		case 'zip':
 		case 'rar':
-			return <IconFileTypeZip size={40} stroke={1} color="gray.6"/>;
+			return <IconFileTypeZip size={40} stroke={1} color={theme.colors.cyan[6]}/>;
 		default:
 			return <IconFile size={40} stroke={1}/>;
 	}

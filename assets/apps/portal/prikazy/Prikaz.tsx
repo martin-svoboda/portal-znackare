@@ -172,7 +172,7 @@ const PrikazUseky = ({useky}: { useky: any[] }) => {
 							  shape={usek.Druh_Odbocky_Kod || usek.Druh_Znaceni_Kod} size={30}/></Table.Td>
 			<Table.Td>{replaceTextWithIcons(usek.Nazev_ZU, 14)}</Table.Td>
 			<Table.Td>
-				<Group gap="xs" justify="space-between" wrap="wrap">
+				<Group gap="xs" justify="space-around" wrap="wrap">
 					{formatKm(usek.Delka_ZU)} Km
 					<Badge autoContrast color={barvaDleKodu(usek.Barva_Kod)}>{usek.Barva_Naz}</Badge>
 					{usek.Druh_Odbocky || usek.Druh_Znaceni}

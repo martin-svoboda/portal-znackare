@@ -58,10 +58,10 @@ const LoginForm: React.FC<LoginFormProps> = ({onSuccess}) => {
 				<meta name="description" content="Tento obsah je chráněný a vyžaduje přihlášení"/>
 			</Helmet>
 
-			<Flex h="calc(100vh - 90px)" w="100vw" style={{margin: '-1rem 0'}}>
+			<Flex h="calc(100vh - 60px)" w="calc(100% + 2rem)" style={{margin: '-1rem'}}>
 				<Flex
 					w={'100%'}
-					maw={{base: '100%', sm: '40%'}}
+					maw={{base: '100%', lg: '40%'}}
 					justify="center"
 					align="center"
 					p="xl"
@@ -108,12 +108,12 @@ const LoginForm: React.FC<LoginFormProps> = ({onSuccess}) => {
 					</Paper>
 				</Flex>
 
-				<Box w={'60%'} h="100%" visibleFrom="sm">
+				<Box w={'60%'} h="100%" visibleFrom="lg">
 					<BackgroundImage
 						src={window.kct_portal.settings?.login_image}
 						h="100%"
 						w="100%"
-						style={{backgroundSize: 'cover', backgroundPosition: 'center'}}
+						style={{backgroundSize: 'cover', backgroundPosition: 'left'}}
 					/>
 				</Box>
 			</Flex>
