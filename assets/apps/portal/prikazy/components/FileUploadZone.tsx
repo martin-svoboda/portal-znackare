@@ -1,4 +1,4 @@
-import React, {useState, useRef, useCallback} from "react";
+import React, {useState, useRef, useCallback, useEffect} from "react";
 import {
 	Box,
 	Group,
@@ -27,12 +27,14 @@ import {
 	IconCheck,
 	IconCamera,
 	IconCameraOff,
-	IconCapture
+	IconCapture,
+	IconRepeat
 } from "@tabler/icons-react";
 import {Dropzone, FileWithPath} from "@mantine/dropzone";
 import {useAuth} from "../../auth/AuthContext";
 import {FileAttachment} from "../types/HlaseniTypes";
 import {notifications} from "@mantine/notifications";
+import {useMediaQuery} from "@mantine/hooks";
 
 interface FileUploadZoneProps {
 	files: FileAttachment[];
@@ -69,6 +71,15 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 	const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+
+	// Cleanup při unmount
+	useEffect(() => {
+		return () => {
+			if (stream) {
+				stream.getTracks().forEach(track => track.stop());
+			}
+		};
+	}, [stream]);
 
 	const isImage = (filename: string) => {
 		return /\.(jpg|jpeg|png|gif|bmp|webp|heic)$/i.test(filename);
@@ -160,23 +171,45 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 	const startCamera = async () => {
 		setCameraError(null);
 		try {
-			const mediaStream = await navigator.mediaDevices.getUserMedia({
+			// Zkusíme nejprve požadovaný facing mode
+			let constraints: MediaStreamConstraints = {
 				video: {
 					facingMode: facingMode,
-					width: { ideal: 1920 },
-					height: { ideal: 1080 }
+					width: {ideal: 1920},
+					height: {ideal: 1080}
 				}
-			});
+			};
+
+			let mediaStream: MediaStream;
+			try {
+				mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+			} catch (error) {
+				// Pokud se nepodaří s konkrétním facing mode, zkusíme bez něj
+				console.warn('Fallback na základní video constraints');
+				constraints = {
+					video: {
+						width: {ideal: 1920},
+						height: {ideal: 1080}
+					}
+				};
+				mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+			}
 
 			setStream(mediaStream);
 			setCameraOpen(true);
 
-			if (videoRef.current) {
-				videoRef.current.srcObject = mediaStream;
-			}
+			// Počkáme na další render cyklus, aby se video element vytvořil
+			setTimeout(() => {
+				if (videoRef.current) {
+					videoRef.current.srcObject = mediaStream;
+					videoRef.current.play().catch(err => {
+						console.error('Chyba při spuštění videa:', err);
+					});
+				}
+			}, 100);
 		} catch (error) {
 			console.error('Chyba při spouštění kamery:', error);
-			setCameraError('Nepodařilo se spustit kameru. Zkontrolujte oprávnění.');
+			setCameraError('Nepodařilo se spustit kameru. Zkontrolujte oprávnění pro kameru v nastavení prohlížeče.');
 		}
 	};
 
@@ -192,26 +225,67 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 	};
 
 	const switchCamera = async () => {
+		if (stream) {
+			// Zastavíme aktuální stream
+			stream.getTracks().forEach(track => track.stop());
+			setStream(null);
+		}
+
 		const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
 		setFacingMode(newFacingMode);
 
-		if (stream) {
-			stopCamera();
-			// Malá pauza před spuštěním nové kamery
-			setTimeout(() => {
-				startCamera();
-			}, 100);
+		try {
+			// Spustíme novou kameru s opačným facing mode
+			let mediaStream: MediaStream;
+			try {
+				mediaStream = await navigator.mediaDevices.getUserMedia({
+					video: {
+						facingMode: newFacingMode,
+						width: {ideal: 1920},
+						height: {ideal: 1080}
+					}
+				});
+			} catch (error) {
+				// Pokud se nepodaří přepnout, zůstaneme u původního
+				console.warn('Nepodařilo se přepnout kameru, zachováváme původní');
+				setCameraError('Zařízení nemá druhou kameru');
+				return;
+			}
+
+			setStream(mediaStream);
+
+			if (videoRef.current) {
+				videoRef.current.srcObject = mediaStream;
+				videoRef.current.play().catch(err => {
+					console.error('Chyba při spuštění videa:', err);
+				});
+			}
+		} catch (error) {
+			console.error('Chyba při přepínání kamery:', error);
+			setCameraError('Nepodařilo se přepnout kameru.');
 		}
 	};
 
 	const capturePhoto = async () => {
-		if (!videoRef.current || !canvasRef.current) return;
+		if (!videoRef.current || !canvasRef.current) {
+			setCameraError('Video nebo canvas není dostupný');
+			return;
+		}
 
 		const video = videoRef.current;
 		const canvas = canvasRef.current;
 		const ctx = canvas.getContext('2d');
 
-		if (!ctx) return;
+		if (!ctx) {
+			setCameraError('Nepodařilo se získat kontext canvas');
+			return;
+		}
+
+		// Zkontrolujeme, zda má video rozměry
+		if (video.videoWidth === 0 || video.videoHeight === 0) {
+			setCameraError('Video ještě není připraveno. Zkuste to znovu.');
+			return;
+		}
 
 		// Nastavení rozměrů canvas podle videa
 		canvas.width = video.videoWidth;
@@ -226,6 +300,8 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 				const photoUrl = URL.createObjectURL(blob);
 				setCapturedPhoto(photoUrl);
 				setPhotoBlob(blob);
+			} else {
+				setCameraError('Nepodařilo se vytvořit foto');
 			}
 		}, 'image/jpeg', 0.9);
 	};
@@ -243,6 +319,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 
 		try {
 			setUploading(true);
+			setCameraError(null); // Reset error state
 			const uploadedFile = await uploadFile(file);
 			onFilesChange([...files, uploadedFile]);
 
@@ -255,6 +332,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 			// Zavření kamery po potvrzení
 			stopCamera();
 		} catch (error) {
+			console.error('Chyba při ukládání foto:', error);
 			notifications.show({
 				title: "Chyba při ukládání",
 				message: "Nepodařilo se uložit foto",
@@ -338,7 +416,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 		setRotationAngle(file.rotation || 0);
 	};
 
-	const FilePreview: React.FC<{file: FileAttachment}> = ({file}) => {
+	const FilePreview: React.FC<{ file: FileAttachment }> = ({file}) => {
 		if (isImage(file.fileName)) {
 			return (
 				<Card withBorder p="xs" style={{position: 'relative'}}>
@@ -358,7 +436,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 							onClick={() => rotateImage(file.id, -90)}
 							disabled={disabled}
 						>
-							<IconRotate2 size={12} />
+							<IconRotate2 size={12}/>
 						</ActionIcon>
 						<ActionIcon
 							size="xs"
@@ -366,14 +444,14 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 							onClick={() => rotateImage(file.id, 90)}
 							disabled={disabled}
 						>
-							<IconRotateClockwise size={12} />
+							<IconRotateClockwise size={12}/>
 						</ActionIcon>
 						<ActionIcon
 							size="xs"
 							variant="light"
 							onClick={() => openPreview(file)}
 						>
-							<IconEye size={12} />
+							<IconEye size={12}/>
 						</ActionIcon>
 						<ActionIcon
 							size="xs"
@@ -382,7 +460,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 							onClick={() => removeFile(file.id)}
 							disabled={disabled}
 						>
-							<IconTrash size={12} />
+							<IconTrash size={12}/>
 						</ActionIcon>
 					</Group>
 				</Card>
@@ -392,7 +470,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 		return (
 			<Card withBorder p="xs">
 				<Group gap="xs">
-					<IconFile size={20} />
+					<IconFile size={20}/>
 					<Stack gap={0}>
 						<Text size="xs" truncate maw={120}>
 							{file.fileName}
@@ -408,7 +486,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 						variant="light"
 						onClick={() => openPreview(file)}
 					>
-						<IconEye size={12} />
+						<IconEye size={12}/>
 					</ActionIcon>
 					<ActionIcon
 						size="xs"
@@ -417,7 +495,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 						onClick={() => removeFile(file.id)}
 						disabled={disabled}
 					>
-						<IconTrash size={12} />
+						<IconTrash size={12}/>
 					</ActionIcon>
 				</Group>
 			</Card>
@@ -427,62 +505,68 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 	return (
 		<Box>
 			{!disabled && files.length < maxFiles && (
-				<Stack gap="md">
-					{/* Dropzone pro nahrávání souborů */}
-					<Dropzone
-						onDrop={handleDrop}
-						accept={accept.split(',').reduce((acc, type) => {
-							acc[type.trim()] = [];
-							return acc;
-						}, {} as Record<string, string[]>)}
-						maxSize={maxSize * 1024 * 1024}
-						loading={uploading}
-						disabled={disabled}
-					>
-						<Group justify="center" gap="xl" style={{minHeight: 100}}>
-							<Dropzone.Accept>
-								<IconUpload size={50} color="var(--mantine-color-blue-6)" />
-							</Dropzone.Accept>
-							<Dropzone.Reject>
-								<IconX size={50} color="var(--mantine-color-red-6)" />
-							</Dropzone.Reject>
-							<Dropzone.Idle>
-								<IconPhoto size={50} color="var(--mantine-color-dimmed)" />
-							</Dropzone.Idle>
+				<>
+					<Text size="sm" c="dimmed" inline mb="sm">
+						Maximálně {maxFiles} souborů, každý do {maxSize}MB
+					</Text>
+					<Group gap="md">
+						{/* Dropzone pro nahrávání souborů */}
+						<Dropzone
+							flex="1"
+							onDrop={handleDrop}
+							accept={accept.split(',').reduce((acc, type) => {
+								acc[type.trim()] = [];
+								return acc;
+							}, {} as Record<string, string[]>)}
+							maxSize={maxSize * 1024 * 1024}
+							loading={uploading}
+							disabled={disabled}
+							className="dropzone"
+						>
+							<Group justify="center" p="sm" gap="lg" mih={150} style={{pointerEvents: 'none'}}>
+								<Dropzone.Accept>
+									<IconUpload size={50} color="var(--mantine-color-blue-6)"/>
+								</Dropzone.Accept>
+								<Dropzone.Reject>
+									<IconX size={50} color="var(--mantine-color-red-6)"/>
+								</Dropzone.Reject>
+								<Dropzone.Idle>
+									<IconPhoto size={50} color="var(--mantine-color-dimmed)"/>
+								</Dropzone.Idle>
 
-							<div>
-								<Text size="xl" inline>
-									Přetáhněte soubory sem nebo klikněte pro výběr
-								</Text>
-								<Text size="sm" c="dimmed" inline mt={7}>
-									Maximálně {maxFiles} souborů, každý do {maxSize}MB
-								</Text>
-							</div>
-						</Group>
-					</Dropzone>
-
-					{/* Kamera tlačítko */}
-					{enableCamera && 'mediaDevices' in navigator && (
-						<>
-							<Divider label="nebo" labelPosition="center" />
-							<Group justify="center">
-								<Button
-									leftSection={<IconCamera size={20} />}
-									variant="light"
-									size="lg"
-									onClick={startCamera}
-									disabled={disabled || uploading}
-								>
-									Vyfotit pomocí kamery
-								</Button>
+								<div>
+									<Text size={useMediaQuery('(max-width: 50em)') ? "md" : "xl"} inline>
+										Přetáhněte soubory sem nebo klikněte pro výběr
+									</Text>
+								</div>
 							</Group>
-						</>
-					)}
-				</Stack>
+						</Dropzone>
+
+						{/* Kamera tlačítko */}
+						{enableCamera && 'mediaDevices' in navigator && (
+
+							<Button
+								mih={150}
+								miw="20%"
+								variant="default"
+								size="lg"
+								onClick={startCamera}
+								disabled={disabled || uploading}
+							>
+								<Stack justify="center" align="center" gap="sm">
+									<IconCamera size={50} color="var(--mantine-color-dimmed)"/>
+									<Text size="md" c="dimmed">
+										Vyfotit
+									</Text>
+								</Stack>
+							</Button>
+						)}
+					</Group>
+				</>
 			)}
 
 			{uploading && (
-				<Progress value={100} animated mt="md" />
+				<Progress value={100} animated mt="md"/>
 			)}
 
 			{files.length > 0 && (
@@ -493,7 +577,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 					<Grid gutter="xs">
 						{files.map((file) => (
 							<Grid.Col key={file.id} span={3}>
-								<FilePreview file={file} />
+								<FilePreview file={file}/>
 							</Grid.Col>
 						))}
 					</Grid>
@@ -504,9 +588,11 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 			<Modal
 				opened={cameraOpen}
 				onClose={stopCamera}
-				title="Kamera"
-				size="xl"
+				withCloseButton={false}
+				size="55rem"
+				fullScreen={useMediaQuery('(max-width: 50em)')}
 				centered
+				padding="0"
 			>
 				<Stack>
 					{cameraError ? (
@@ -516,7 +602,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 					) : capturedPhoto ? (
 						<>
 							{/* Photo confirmation view */}
-							<Box pos="relative" style={{ textAlign: 'center' }}>
+							<Box pos="relative" style={{textAlign: 'center'}}>
 								<Text size="lg" fw={500} mb="md">
 									Zkontrolujte kvalitu fotky
 								</Text>
@@ -525,40 +611,37 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 									alt="Zachycená fotka"
 									style={{
 										width: '100%',
-										maxHeight: '60vh',
+										maxHeight: '70vh',
 										objectFit: 'contain',
-										borderRadius: '8px',
 										border: '2px solid var(--mantine-color-gray-3)'
 									}}
 								/>
 							</Box>
 
-							<Group justify="center" gap="md">
+							<Group justify="center" gap="md" mb="md">
 								<Button
 									variant="light"
 									color="red"
-									leftSection={<IconX size={16} />}
+									leftSection={<IconX size={16}/>}
 									onClick={discardPhoto}
-									size="lg"
 								>
-									Zahodit a vyfotit znovu
+									Vyfotit znovu
 								</Button>
 
 								<Button
 									color="green"
-									leftSection={<IconCheck size={16} />}
+									leftSection={<IconCheck size={16}/>}
 									onClick={confirmPhoto}
 									loading={uploading}
-									size="lg"
 								>
-									Potvrdit a uložit
+									Potvrdit
 								</Button>
 							</Group>
 						</>
 					) : (
 						<>
 							{/* Live camera view */}
-							<Box pos="relative" style={{ textAlign: 'center' }}>
+							<Box pos="relative" style={{textAlign: 'center'}}>
 								<video
 									ref={videoRef}
 									autoPlay
@@ -566,42 +649,47 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 									muted
 									style={{
 										width: '100%',
-										maxHeight: '60vh',
+										maxHeight: '80vh',
 										objectFit: 'cover',
-										borderRadius: '8px'
 									}}
 								/>
 								<canvas
 									ref={canvasRef}
-									style={{ display: 'none' }}
+									style={{display: 'none'}}
 								/>
 							</Box>
 
-							<Group justify="center" gap="md">
-								<Button
+							<Group justify="center" gap="md" mb="md">
+								<ActionIcon
 									variant="light"
-									leftSection={<IconRotateClockwise size={16} />}
+									size="lg"
+									radius="xl"
+									aria-label="Přepnout kameru"
 									onClick={switchCamera}
 								>
-									Přepnout kameru
-								</Button>
+									<IconRepeat style={{width: '70%', height: '70%'}} stroke={1.5}/>
+								</ActionIcon>
 
-								<Button
-									size="lg"
-									leftSection={<IconCapture size={20} />}
+								<ActionIcon
+									size="xl"
+									radius="xl"
+									aria-label="Zachytit foto"
 									onClick={capturePhoto}
 								>
-									Zachytit foto
-								</Button>
+									<IconCapture style={{width: '70%', height: '70%'}} stroke={1.5}/>
+								</ActionIcon>
 
-								<Button
+								<ActionIcon
 									variant="light"
+									size="lg"
+									radius="xl"
 									color="red"
-									leftSection={<IconCameraOff size={16} />}
+									aria-label="Zavřít kameru"
 									onClick={stopCamera}
 								>
-									Zavřít kameru
-								</Button>
+									<IconCameraOff style={{width: '70%', height: '70%'}} stroke={1.5}/>
+								</ActionIcon>
+
 							</Group>
 						</>
 					)}
@@ -631,21 +719,21 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 								<Group justify="center" mt="md">
 									<Button
 										variant="light"
-										leftSection={<IconRotate2 size={16} />}
+										leftSection={<IconRotate2 size={16}/>}
 										onClick={() => setRotationAngle(prev => prev - 90)}
 									>
 										Otočit vlevo
 									</Button>
 									<Button
 										variant="light"
-										leftSection={<IconRotateClockwise size={16} />}
+										leftSection={<IconRotateClockwise size={16}/>}
 										onClick={() => setRotationAngle(prev => prev + 90)}
 									>
 										Otočit vpravo
 									</Button>
 									<Button
 										color="green"
-										leftSection={<IconCheck size={16} />}
+										leftSection={<IconCheck size={16}/>}
 										onClick={() => {
 											rotateImage(previewFile.id, rotationAngle - (previewFile.rotation || 0));
 											setPreviewFile(null);
@@ -669,7 +757,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 							</Box>
 						) : (
 							<Box ta="center">
-								<IconFile size={64} color="var(--mantine-color-gray-5)" />
+								<IconFile size={64} color="var(--mantine-color-gray-5)"/>
 								<Text mt="md">{previewFile.fileName}</Text>
 								<Text size="sm" c="dimmed">
 									{(previewFile.fileSize / 1024).toFixed(1)} KB

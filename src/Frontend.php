@@ -82,6 +82,7 @@ class Frontend {
 
 	public function setup_assets() {
 		$this->asset_factory->wp_script( $this->utils->get_plugin_path( 'build/portal.css' ) );
+		$this->asset_factory->wp_script( $this->utils->get_plugin_path( 'build/plugin.css' ) );
 		$this->asset_factory->wp_script(
 			$this->utils->get_plugin_path( 'build/portal.js' ),
 			array(

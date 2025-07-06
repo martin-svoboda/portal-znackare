@@ -38,6 +38,7 @@ import {HlaseniFormData} from "./types/HlaseniTypes";
 import {PartAForm} from "./components/PartAForm";
 import {PartBForm} from "./components/PartBForm";
 import {CompensationSummary} from "./components/CompensationSummary";
+import {FileUploadZone} from "./components/FileUploadZone";
 
 const getBreadcrumbs = (id: string | undefined, head: any) => [
 	{title: "Nástěnka", href: "/nastenka"},
@@ -178,23 +179,24 @@ const HlaseniPrikazu = () => {
 		}
 	}, [canCompletePartA, formData.partACompleted]);
 
-	// Automatické označování části B jako dokončené (zatím jednoduchá logika)
+	// Automatické označování části B jako dokončené
 	useEffect(() => {
 		if (head?.Druh_ZP === "O") {
+			// Pro obnovu vyžadujeme TIM reporty
 			const partBCompleted = Object.keys(formData.timReports).length > 0;
 			if (partBCompleted !== formData.partBCompleted) {
 				updateFormData({ partBCompleted });
 			}
+		} else {
+			// Pro ostatní druhy vyžadujeme vyplněný komentář
+			const partBCompleted = formData.routeComment.trim().length > 0;
+			if (partBCompleted !== formData.partBCompleted) {
+				updateFormData({ partBCompleted });
+			}
 		}
-	}, [formData.timReports, formData.partBCompleted, head?.Druh_ZP]);
+	}, [formData.timReports, formData.routeComment, formData.partBCompleted, head?.Druh_ZP]);
 
-	// Validace kroku podle typu příkazu
-	useEffect(() => {
-		if (head && activeStep === 1 && head.Druh_ZP !== "O") {
-			// Pokud je krok 1 ale není to obnova, přesměruj na krok 2
-			changeStep(2);
-		}
-	}, [head, activeStep]);
+	// Validace kroku podle typu příkazu - odstraněno, nyní všechny příkazy mají část B
 
 	const totalLength = useMemo(() => {
 		if (head?.Druh_ZP !== "O" || !Array.isArray(useky) || useky.length === 0) return null;
@@ -317,16 +319,14 @@ const HlaseniPrikazu = () => {
 						icon={<IconCashBanknoteEdit size={18}/>}
 						completedIcon={!formData.partACompleted ? <IconAlertSmall size={18}/> : undefined}
 					/>
-					{head?.Druh_ZP === "O" && (
-						<Stepper.Step
-							label="Část B - Stavy TIM"
-							description={!formData.partBCompleted && activeStep > 1 ? (
-								<Badge color="orange" size="xs">Nedokončeno</Badge>
-							) : "Stav informačních míst"}
-							icon={<IconSignRight size={18}/>}
-							completedIcon={!formData.partBCompleted ? <IconAlertSmall size={18}/> : undefined}
-						/>
-					)}
+					<Stepper.Step
+						label={head?.Druh_ZP === "O" ? "Část B - Stavy TIM" : "Část B - Hlášení o činnosti"}
+						description={!formData.partBCompleted && activeStep > 1 ? (
+							<Badge color="orange" size="xs">Nedokončeno</Badge>
+						) : head?.Druh_ZP === "O" ? "Stav informačních míst" : "Hlášení značkařské činnosti"}
+						icon={<IconSignRight size={18}/>}
+						completedIcon={!formData.partBCompleted ? <IconAlertSmall size={18}/> : undefined}
+					/>
 					<Stepper.Step
 						label="Odeslání"
 						description="Kontrola a odeslání"
@@ -398,26 +398,62 @@ const HlaseniPrikazu = () => {
 							</Button>
 
 							<Button
-								onClick={() => changeStep(head?.Druh_ZP === "O" ? 1 : 2)}
+								onClick={() => changeStep(1)}
 							>
-								Pokračovat {head?.Druh_ZP === "O" ? "na část B" : "k odeslání"}
+								Pokračovat na část B
 							</Button>
 						</Group>
 					</>
 				)}
 
-				{/* Část B - pouze pro obnovy */}
-				{activeStep === 1 && head?.Druh_ZP === "O" && (
+				{/* Část B - pro všechny druhy příkazů */}
+				{activeStep === 1 && (
 					<>
-						<PartBForm
-							formData={formData}
-							updateFormData={updateFormData}
-							head={head}
-							useky={useky}
-							predmety={predmety}
-							canEdit={canEditOthers}
-							onSave={() => saveForm(false)}
-						/>
+						{head?.Druh_ZP === "O" ? (
+							<PartBForm
+								formData={formData}
+								updateFormData={updateFormData}
+								head={head}
+								useky={useky}
+								predmety={predmety}
+								canEdit={canEditOthers}
+								onSave={() => saveForm(false)}
+							/>
+						) : (
+							<Card shadow="sm" padding="lg">
+								<Title order={4} mb="md">Hlášení o značkařské činnosti</Title>
+								
+								<Stack gap="md">
+									<Box>
+										<Text fw={500} mb="xs">Hlášení o provedené činnosti</Text>
+										<Text size="sm" c="dimmed" mb="sm">
+											Popište provedenou značkařskou činnost, stav značení, případné problémy a návrhy na zlepšení.
+										</Text>
+										<Textarea
+											placeholder="Popište provedenou značkařskou činnost..."
+											value={formData.routeComment}
+											onChange={(e) => updateFormData({routeComment: e.target.value})}
+											minRows={6}
+											disabled={formData.partBCompleted}
+										/>
+									</Box>
+
+									<Box>
+										<Text fw={500} mb="xs">Fotografické přílohy</Text>
+										<Text size="sm" c="dimmed" mb="sm">
+											Přiložte fotografie dokumentující provedenou činnost, stav značení, problémová místa apod.
+										</Text>
+										<FileUploadZone
+											files={formData.routeAttachments || []}
+											onFilesChange={(files) => updateFormData({routeAttachments: files})}
+											maxFiles={20}
+											accept="image/jpeg,image/png,image/heic,application/pdf"
+											disabled={formData.partBCompleted}
+										/>
+									</Box>
+								</Stack>
+							</Card>
+						)}
 
 						<Divider my="lg"/>
 
@@ -504,39 +540,54 @@ const HlaseniPrikazu = () => {
 							</Grid>
 						</Card>
 
-						{/* Souhrn části B - pouze pro obnovy */}
-						{head?.Druh_ZP === "O" && (
-							<Card shadow="sm" p="lg">
-								<Group mb="md" gap="xs">
-									<IconInfoCircle size={20}/>
-									<Title order={4}>Souhrn části B - Stavy TIM</Title>
-								</Group>
-								<Grid>
-									<Grid.Col span={{base: 12, md: 6}}>
-										<Stack gap="xs">
+						{/* Souhrn části B */}
+						<Card shadow="sm" p="lg">
+							<Group mb="md" gap="xs">
+								<IconInfoCircle size={20}/>
+								<Title order={4}>
+									Souhrn části B - {head?.Druh_ZP === "O" ? "Stavy TIM" : "Hlášení o činnosti"}
+								</Title>
+							</Group>
+							<Grid>
+								<Grid.Col span={{base: 12, md: 6}}>
+									<Stack gap="xs">
+										{head?.Druh_ZP === "O" ? (
 											<Group justify="space-between">
 												<Text size="sm" c="dimmed">Počet TIM:</Text>
 												<Text size="sm">{Object.keys(formData.timReports).length}</Text>
 											</Group>
+										) : (
 											<Group justify="space-between">
-												<Text size="sm" c="dimmed">Stav části B:</Text>
-												<Badge color={formData.partBCompleted ? "green" : "red"} size="sm">
-													{formData.partBCompleted ? "Dokončeno" : "Nedokončeno"}
-												</Badge>
+												<Text size="sm" c="dimmed">Hlášení vyplněno:</Text>
+												<Text size="sm">{formData.routeComment.trim().length > 0 ? "Ano" : "Ne"}</Text>
 											</Group>
-										</Stack>
-									</Grid.Col>
-									<Grid.Col span={{base: 12, md: 6}}>
-										{formData.routeComment && (
-											<Box>
-												<Text size="sm" c="dimmed" mb="xs">Poznámka k trase:</Text>
-												<Text size="sm">{formData.routeComment}</Text>
-											</Box>
 										)}
-									</Grid.Col>
-								</Grid>
-							</Card>
-						)}
+										<Group justify="space-between">
+											<Text size="sm" c="dimmed">Stav části B:</Text>
+											<Badge color={formData.partBCompleted ? "green" : "red"} size="sm">
+												{formData.partBCompleted ? "Dokončeno" : "Nedokončeno"}
+											</Badge>
+										</Group>
+									</Stack>
+								</Grid.Col>
+								<Grid.Col span={{base: 12, md: 6}}>
+									{formData.routeComment && (
+										<Box>
+											<Text size="sm" c="dimmed" mb="xs">
+												{head?.Druh_ZP === "O" ? "Poznámka k trase:" : "Hlášení o činnosti:"}
+											</Text>
+											<Text size="sm">{formData.routeComment}</Text>
+										</Box>
+									)}
+									{formData.routeAttachments && formData.routeAttachments.length > 0 && (
+										<Box mt="xs">
+											<Text size="sm" c="dimmed" mb="xs">Počet příloh:</Text>
+											<Text size="sm">{formData.routeAttachments.length}</Text>
+										</Box>
+									)}
+								</Grid.Col>
+							</Grid>
+						</Card>
 
 						{/* Výpočet náhrad - kompletní souhrn */}
 						<Card shadow="sm" p="lg">
@@ -571,7 +622,7 @@ const HlaseniPrikazu = () => {
 								<Group justify="space-between">
 									<Button
 										variant="outline"
-										onClick={() => changeStep(head?.Druh_ZP === "O" ? 1 : 0)}
+										onClick={() => changeStep(1)}
 									>
 										Zpět na úpravy
 									</Button>
@@ -580,7 +631,7 @@ const HlaseniPrikazu = () => {
 										size="lg"
 										color="blue"
 										leftSection={<IconSend size={20}/>}
-										disabled={!formData.partACompleted || (head?.Druh_ZP === "O" && !formData.partBCompleted)}
+										disabled={!formData.partACompleted || !formData.partBCompleted}
 										onClick={() => {
 											// Odeslání ke schválení
 											apiRequest("/hlaseni/submit", "POST", {int_adr: intAdr, id})
