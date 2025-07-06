@@ -10,13 +10,10 @@ import {
 	Badge,
 	Button,
 	Divider,
-	Tabs,
 	Alert,
 	Box,
 	Grid,
-	Paper,
-	ActionIcon,
-	Flex
+	Stepper
 } from "@mantine/core";
 import {
 	IconReportMoney,
@@ -24,19 +21,20 @@ import {
 	IconInfoCircle,
 	IconCheck,
 	IconAlertTriangle,
-	IconPlus,
-	IconTrash
+	IconCircleX,
+	IconSend,
+	IconAlertSmall,
+	IconCashBanknoteEdit, IconSignRight
 } from "@tabler/icons-react";
-import {useParams, useLocation, useNavigate} from "react-router-dom";
+import {useParams, useLocation, useNavigate, useSearchParams} from "react-router-dom";
 import {apiRequest} from "../shared/api";
 import {notifications} from "@mantine/notifications";
 import {Helmet} from "react-helmet-async";
 import {useAuth} from "../auth/AuthContext";
 import {BreadcrumbsNav} from "../shared/BreadcrumbsNav";
 import RequireLogin from "../auth/RequireLogin";
-import {formatKm} from "../shared/formatting";
 import {PrikazHead} from "./components/PrikazHead";
-import {HlaseniFormData, TravelSegment, AdditionalExpense, Accommodation} from "./types/HlaseniTypes";
+import {HlaseniFormData} from "./types/HlaseniTypes";
 import {PartAForm} from "./components/PartAForm";
 import {PartBForm} from "./components/PartBForm";
 import {CompensationSummary} from "./components/CompensationSummary";
@@ -53,31 +51,50 @@ const HlaseniPrikazu = () => {
 	const intAdr = getIntAdr();
 	const location = useLocation();
 	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
 
 	// Převezmi data z location state, pokud existují
-	const locationData = location.state as {head?: any, predmety?: any[], useky?: any[], delka?: number} | null;
+	const locationData = location.state as { head?: any, predmety?: any[], useky?: any[], delka?: number } | null;
 
 	const [head, setHead] = useState<any>(locationData?.head || null);
 	const [predmety, setPredmety] = useState<any[]>(locationData?.predmety || []);
 	const [useky, setUseky] = useState<any[]>(locationData?.useky || []);
 	const [loading, setLoading] = useState(!locationData);
 	const [saving, setSaving] = useState(false);
-	const [activeTab, setActiveTab] = useState<string | null>("part-a");
+	
+	// Inicializace kroku z URL parametru
+	const [activeStep, setActiveStep] = useState(() => {
+		const stepParam = searchParams.get('step');
+		const stepNumber = stepParam ? parseInt(stepParam, 10) : 0;
+		return isNaN(stepNumber) || stepNumber < 0 || stepNumber > 2 ? 0 : stepNumber;
+	});
 
 	const [formData, setFormData] = useState<HlaseniFormData>({
 		executionDate: new Date(),
 		travelSegments: [{
 			id: crypto.randomUUID(),
-			startDate: new Date(),
-			endDate: new Date(),
-			startTime: "",
-			endTime: "",
-			startPlace: "",
-			endPlace: "",
-			transportType: "AUV",
-			kilometers: 0,
-			ticketCosts: 0,
-			attachments: []
+			outbound: {
+				date: new Date(),
+				startTime: "",
+				endTime: "",
+				startPlace: "",
+				endPlace: "",
+				transportType: "AUV",
+				kilometers: 0,
+				ticketCosts: 0,
+				attachments: []
+			},
+			return: {
+				date: new Date(),
+				startTime: "",
+				endTime: "",
+				startPlace: "",
+				endPlace: "",
+				transportType: "AUV",
+				kilometers: 0,
+				ticketCosts: 0,
+				attachments: []
+			}
 		}],
 		primaryDriver: "",
 		vehicleRegistration: "",
@@ -153,6 +170,32 @@ const HlaseniPrikazu = () => {
 			});
 	}, [formData.executionDate]);
 
+	// Automatické označování částí jako dokončené
+	useEffect(() => {
+		const partACompleted = canCompletePartA;
+		if (partACompleted !== formData.partACompleted) {
+			updateFormData({ partACompleted });
+		}
+	}, [canCompletePartA, formData.partACompleted]);
+
+	// Automatické označování části B jako dokončené (zatím jednoduchá logika)
+	useEffect(() => {
+		if (head?.Druh_ZP === "O") {
+			const partBCompleted = Object.keys(formData.timReports).length > 0;
+			if (partBCompleted !== formData.partBCompleted) {
+				updateFormData({ partBCompleted });
+			}
+		}
+	}, [formData.timReports, formData.partBCompleted, head?.Druh_ZP]);
+
+	// Validace kroku podle typu příkazu
+	useEffect(() => {
+		if (head && activeStep === 1 && head.Druh_ZP !== "O") {
+			// Pokud je krok 1 ale není to obnova, přesměruj na krok 2
+			changeStep(2);
+		}
+	}, [head, activeStep]);
+
 	const totalLength = useMemo(() => {
 		if (head?.Druh_ZP !== "O" || !Array.isArray(useky) || useky.length === 0) return null;
 		return useky.reduce((sum, usek) => sum + Number(usek.Delka_ZU || 0), 0);
@@ -198,15 +241,30 @@ const HlaseniPrikazu = () => {
 		setFormData(prev => ({...prev, ...updates}));
 	};
 
+	// Funkce pro změnu kroku s aktualizací URL
+	const changeStep = (step: number) => {
+		setActiveStep(step);
+		const newSearchParams = new URLSearchParams(searchParams);
+		if (step === 0) {
+			newSearchParams.delete('step');
+		} else {
+			newSearchParams.set('step', step.toString());
+		}
+		setSearchParams(newSearchParams, { replace: true });
+	};
+
 	const canCompletePartA = useMemo(() => {
 		// Kontrola povinných údajů pro dokončení části A
-		const hasDriverForCar = formData.travelSegments.some(segment =>
-			(segment.transportType === "AUV" || segment.transportType === "AUV-Z") &&
-			(!formData.primaryDriver || !formData.vehicleRegistration)
+		const needsDriver = formData.travelSegments.some(segment =>
+			segment.outbound.transportType === "AUV" || segment.outbound.transportType === "AUV-Z" || segment.outbound.transportType === "AUV-Z-VYSSI" ||
+			segment.return.transportType === "AUV" || segment.return.transportType === "AUV-Z" || segment.return.transportType === "AUV-Z-VYSSI"
 		);
 
+		const hasDriverForCar = needsDriver && (!formData.primaryDriver || !formData.vehicleRegistration);
+
 		const hasTicketsForPublicTransport = formData.travelSegments.some(segment =>
-			segment.transportType === "veřejná doprava" && segment.attachments.length === 0
+			(segment.outbound.transportType === "veřejná doprava" && segment.outbound.attachments.length === 0) ||
+			(segment.return.transportType === "veřejná doprava" && segment.return.attachments.length === 0)
 		);
 
 		const hasDocumentsForExpenses = [
@@ -221,7 +279,7 @@ const HlaseniPrikazu = () => {
 		return (
 			<RequireLogin>
 				<Container size="lg" px={0} my="md">
-					<Loader />
+					<Loader/>
 				</Container>
 			</RequireLogin>
 		);
@@ -244,44 +302,93 @@ const HlaseniPrikazu = () => {
 					</Card>
 				)}
 
-				<Tabs value={activeTab} onChange={setActiveTab}>
-					<Tabs.List>
-						<Tabs.Tab
-							value="part-a"
-							leftSection={<IconRoute size={14} />}
-							rightSection={formData.partACompleted && <IconCheck size={14} color="green" />}
-						>
-							Část A - Provedení
-						</Tabs.Tab>
-						{head?.Druh_ZP === "O" && (
-							<Tabs.Tab
-								value="part-b"
-								leftSection={<IconInfoCircle size={14} />}
-								rightSection={formData.partBCompleted && <IconCheck size={14} color="green" />}
-							>
-								Část B - Stav TIM
-							</Tabs.Tab>
-						)}
-						<Tabs.Tab
-							value="summary"
-							leftSection={<IconReportMoney size={14} />}
-						>
-							Souhrn a kompenzace
-						</Tabs.Tab>
-					</Tabs.List>
-
-					<Tabs.Panel value="part-a" pt="md">
-						<PartAForm
-							formData={formData}
-							updateFormData={updateFormData}
-							priceList={priceList}
-							head={head}
-							canEdit={true}
-							canEditOthers={canEditOthers}
-							onSave={() => saveForm(false)}
+				{/* Stepper navigace */}
+				<Stepper
+					active={activeStep}
+					onStepClick={changeStep}
+					size="md"
+					mb="xl"
+				>
+					<Stepper.Step
+						label="Část A - Vyúčtování"
+						description={!formData.partACompleted && activeStep > 0 ? (
+							<Badge color="orange" size="xs">Nedokončeno</Badge>
+						) : "Doprava a výdaje"}
+						icon={<IconCashBanknoteEdit size={18}/>}
+						completedIcon={!formData.partACompleted ? <IconAlertSmall size={18}/> : undefined}
+					/>
+					{head?.Druh_ZP === "O" && (
+						<Stepper.Step
+							label="Část B - Stavy TIM"
+							description={!formData.partBCompleted && activeStep > 1 ? (
+								<Badge color="orange" size="xs">Nedokončeno</Badge>
+							) : "Stav informačních míst"}
+							icon={<IconSignRight size={18}/>}
+							completedIcon={!formData.partBCompleted ? <IconAlertSmall size={18}/> : undefined}
 						/>
+					)}
+					<Stepper.Step
+						label="Odeslání"
+						description="Kontrola a odeslání"
+						icon={<IconSend size={18}/>}
+					/>
+				</Stepper>
 
-						<Group justify="space-between" mt="xl">
+				{/* Hlavní obsah */}
+				{activeStep === 0 && (
+					<>
+						<Grid gutter="lg">
+							{/* Část A - hlavní formulář */}
+							<Grid.Col span={{base: 12, lg: 8}}>
+								<PartAForm
+									formData={formData}
+									updateFormData={updateFormData}
+									priceList={priceList}
+									head={head}
+									canEdit={true}
+									canEditOthers={canEditOthers}
+									onSave={() => saveForm(false)}
+								/>
+
+								{!canCompletePartA && (
+									<Alert
+										icon={<IconAlertTriangle size={16}/>}
+										color="orange"
+										variant="light"
+										mt="md"
+									>
+										Vyplňte všechny povinné údaje
+									</Alert>
+								)}
+							</Grid.Col>
+
+							{/* Výpočet náhrad - sticky sidebar */}
+							<Grid.Col span={{base: 12, lg: 4}}>
+								<Box
+									style={{
+										position: 'sticky',
+										top: 80
+									}}
+								>
+									<Card shadow="sm" p="md">
+										<Group mb="md" gap="xs">
+											<IconReportMoney size={20}/>
+											<Title order={4}>Výpočet náhrad</Title>
+										</Group>
+
+										<CompensationSummary
+											formData={formData}
+											priceList={priceList}
+											head={head}
+											totalLength={totalLength}
+											compact={true}
+										/>
+									</Card>
+								</Box>
+							</Grid.Col>
+						</Grid>
+						<Divider my="lg"/>
+						<Group justify="end" gap="sm">
 							<Button
 								variant="outline"
 								onClick={() => saveForm()}
@@ -290,42 +397,39 @@ const HlaseniPrikazu = () => {
 								Uložit změny
 							</Button>
 
-							{canCompletePartA ? (
-								<Button
-									color="green"
-									onClick={() => {
-										updateFormData({partACompleted: true});
-										saveForm();
-									}}
-									disabled={formData.partACompleted}
-								>
-									{formData.partACompleted ? "Část A dokončena" : "Označit část A jako hotovou"}
-								</Button>
-							) : (
-								<Alert
-									icon={<IconAlertTriangle size={16} />}
-									color="orange"
-									variant="light"
-								>
-									Pro dokončení části A je třeba vyplnit všechny povinné údaje
-								</Alert>
-							)}
+							<Button
+								onClick={() => changeStep(head?.Druh_ZP === "O" ? 1 : 2)}
+							>
+								Pokračovat {head?.Druh_ZP === "O" ? "na část B" : "k odeslání"}
+							</Button>
 						</Group>
-					</Tabs.Panel>
+					</>
+				)}
 
-					{head?.Druh_ZP === "O" && (
-						<Tabs.Panel value="part-b" pt="md">
-							<PartBForm
-								formData={formData}
-								updateFormData={updateFormData}
-								head={head}
-								useky={useky}
-								predmety={predmety}
-								canEdit={canEditOthers}
-								onSave={() => saveForm(false)}
-							/>
+				{/* Část B - pouze pro obnovy */}
+				{activeStep === 1 && head?.Druh_ZP === "O" && (
+					<>
+						<PartBForm
+							formData={formData}
+							updateFormData={updateFormData}
+							head={head}
+							useky={useky}
+							predmety={predmety}
+							canEdit={canEditOthers}
+							onSave={() => saveForm(false)}
+						/>
 
-							<Group justify="space-between" mt="xl">
+						<Divider my="lg"/>
+
+						<Group justify="space-between">
+							<Button
+								variant="outline"
+								onClick={() => changeStep(0)}
+							>
+								Zpět na část A
+							</Button>
+
+							<Group gap="sm">
 								<Button
 									variant="outline"
 									onClick={() => saveForm()}
@@ -335,59 +439,180 @@ const HlaseniPrikazu = () => {
 								</Button>
 
 								<Button
-									color="green"
-									onClick={() => {
-										updateFormData({partBCompleted: true});
-										saveForm();
-									}}
-									disabled={formData.partBCompleted || !canEditOthers}
+									onClick={() => changeStep(2)}
 								>
-									{formData.partBCompleted ? "Část B dokončena" : "Označit část B jako hotovou"}
+									Pokračovat k odeslání
 								</Button>
 							</Group>
-						</Tabs.Panel>
-					)}
-
-					<Tabs.Panel value="summary" pt="md">
-						<CompensationSummary
-							formData={formData}
-							priceList={priceList}
-							head={head}
-							totalLength={totalLength}
-						/>
-
-						<Group justify="center" mt="xl">
-							<Button
-								size="lg"
-								color="blue"
-								disabled={!formData.partACompleted || (head?.Druh_ZP === "O" && !formData.partBCompleted)}
-								onClick={() => {
-									// Odeslání ke schválení
-									apiRequest("/hlaseni/submit", "POST", {int_adr: intAdr, id})
-										.then(() => {
-											notifications.show({
-												title: "Odesláno",
-												message: "Hlášení bylo odesláno ke schválení",
-												color: "green"
-											});
-										})
-										.catch(() => {
-											notifications.show({
-												title: "Chyba",
-												message: "Nepodařilo se odeslat hlášení",
-												color: "red"
-											});
-										});
-								}}
-							>
-								Odeslat ke schválení
-							</Button>
 						</Group>
-					</Tabs.Panel>
-				</Tabs>
+					</>
+				)
+				}
+
+				{/* Krok 3 - Kontrola a odeslání */}
+				{activeStep === 2 && (
+					<Stack gap="lg">
+						{/* Souhrn části A */}
+						<Card shadow="sm" p="lg">
+							<Group mb="md" gap="xs">
+								<IconRoute size={20}/>
+								<Title order={4}>Souhrn části A - Vyúčtování</Title>
+							</Group>
+							<Grid>
+								<Grid.Col span={{base: 12, md: 6}}>
+									<Stack gap="xs">
+										<Group justify="space-between">
+											<Text size="sm" c="dimmed">Datum provedení:</Text>
+											<Text size="sm">{formData.executionDate.toLocaleDateString('cs-CZ')}</Text>
+										</Group>
+										<Group justify="space-between">
+											<Text size="sm" c="dimmed">Počet segmentů dopravy:</Text>
+											<Text size="sm">{formData.travelSegments.length}</Text>
+										</Group>
+										{formData.primaryDriver && (
+											<Group justify="space-between">
+												<Text size="sm" c="dimmed">Řidič:</Text>
+												<Text size="sm">{formData.primaryDriver}</Text>
+											</Group>
+										)}
+										{formData.vehicleRegistration && (
+											<Group justify="space-between">
+												<Text size="sm" c="dimmed">SPZ vozidla:</Text>
+												<Text size="sm">{formData.vehicleRegistration}</Text>
+											</Group>
+										)}
+									</Stack>
+								</Grid.Col>
+								<Grid.Col span={{base: 12, md: 6}}>
+									<Stack gap="xs">
+										<Group justify="space-between">
+											<Text size="sm" c="dimmed">Ubytování:</Text>
+											<Text size="sm">{formData.accommodations.length} nocí</Text>
+										</Group>
+										<Group justify="space-between">
+											<Text size="sm" c="dimmed">Dodatečné výdaje:</Text>
+											<Text size="sm">{formData.additionalExpenses.length} položek</Text>
+										</Group>
+										<Group justify="space-between">
+											<Text size="sm" c="dimmed">Stav části A:</Text>
+											<Badge color={formData.partACompleted ? "green" : "red"} size="sm">
+												{formData.partACompleted ? "Dokončeno" : "Nedokončeno"}
+											</Badge>
+										</Group>
+									</Stack>
+								</Grid.Col>
+							</Grid>
+						</Card>
+
+						{/* Souhrn části B - pouze pro obnovy */}
+						{head?.Druh_ZP === "O" && (
+							<Card shadow="sm" p="lg">
+								<Group mb="md" gap="xs">
+									<IconInfoCircle size={20}/>
+									<Title order={4}>Souhrn části B - Stavy TIM</Title>
+								</Group>
+								<Grid>
+									<Grid.Col span={{base: 12, md: 6}}>
+										<Stack gap="xs">
+											<Group justify="space-between">
+												<Text size="sm" c="dimmed">Počet TIM:</Text>
+												<Text size="sm">{Object.keys(formData.timReports).length}</Text>
+											</Group>
+											<Group justify="space-between">
+												<Text size="sm" c="dimmed">Stav části B:</Text>
+												<Badge color={formData.partBCompleted ? "green" : "red"} size="sm">
+													{formData.partBCompleted ? "Dokončeno" : "Nedokončeno"}
+												</Badge>
+											</Group>
+										</Stack>
+									</Grid.Col>
+									<Grid.Col span={{base: 12, md: 6}}>
+										{formData.routeComment && (
+											<Box>
+												<Text size="sm" c="dimmed" mb="xs">Poznámka k trase:</Text>
+												<Text size="sm">{formData.routeComment}</Text>
+											</Box>
+										)}
+									</Grid.Col>
+								</Grid>
+							</Card>
+						)}
+
+						{/* Výpočet náhrad - kompletní souhrn */}
+						<Card shadow="sm" p="lg">
+							<Group mb="md" gap="xs">
+								<IconReportMoney size={20}/>
+								<Title order={4}>Celkový výpočet náhrad</Title>
+							</Group>
+
+							<CompensationSummary
+								formData={formData}
+								priceList={priceList}
+								head={head}
+								totalLength={totalLength}
+								compact={false}
+							/>
+						</Card>
+
+						{/* Tlačítka pro odeslání */}
+						<Card shadow="sm" p="lg" bg="gray.0"
+							  style={{borderLeft: '4px solid var(--mantine-color-blue-6)'}}>
+							<Stack>
+								<Group gap="xs">
+									<IconSend size={20}/>
+									<Title order={4}>Potvrzení odeslání</Title>
+								</Group>
+
+								<Alert color="blue" variant="light">
+									Zkontrolujte prosím všechny údaje před odesláním. Po odeslání již nebude možné
+									hlášení upravovat.
+								</Alert>
+
+								<Group justify="space-between">
+									<Button
+										variant="outline"
+										onClick={() => changeStep(head?.Druh_ZP === "O" ? 1 : 0)}
+									>
+										Zpět na úpravy
+									</Button>
+
+									<Button
+										size="lg"
+										color="blue"
+										leftSection={<IconSend size={20}/>}
+										disabled={!formData.partACompleted || (head?.Druh_ZP === "O" && !formData.partBCompleted)}
+										onClick={() => {
+											// Odeslání ke schválení
+											apiRequest("/hlaseni/submit", "POST", {int_adr: intAdr, id})
+												.then(() => {
+													notifications.show({
+														title: "Odesláno",
+														message: "Hlášení bylo úspěšně odesláno ke schválení",
+														color: "green"
+													});
+													navigate(`/prikaz/${id}`);
+												})
+												.catch(() => {
+													notifications.show({
+														title: "Chyba",
+														message: "Nepodařilo se odeslat hlášení",
+														color: "red"
+													});
+												});
+										}}
+									>
+										Odeslat ke schválení
+									</Button>
+								</Group>
+							</Stack>
+						</Card>
+					</Stack>
+				)
+				}
 			</Container>
 		</RequireLogin>
-	);
+	)
+		;
 };
 
 export default HlaseniPrikazu;

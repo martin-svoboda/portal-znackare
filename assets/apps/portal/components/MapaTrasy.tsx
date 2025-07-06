@@ -131,7 +131,7 @@ export function MapaTrasy({data: {title = '', points, route, druhPresunu = 'PZT'
 		druhPresunu === "CZS" ? "bike_road" : "foot_fast";
 	const [routeCoords, setRouteCoords] = useState([]);
 	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState(null);
+	const [error, setError] = useState<string | null>(null);
 
 	// Rozdělení bodů na platné/neplatné
 	const validPoints = points.filter(isValidPoint);
@@ -209,7 +209,7 @@ export function MapaTrasy({data: {title = '', points, route, druhPresunu = 'PZT'
 		// eslint-disable-next-line
 	}, [JSON.stringify(validPoints), route, druhPresunu]);
 
-	const center = validPoints[0]
+	const center: [number, number] = validPoints[0]
 		? [validPoints[0].lat, validPoints[0].lon]
 		: [49.8, 14.8];
 	const height = window.innerWidth > 768 ? 500 : 350;
@@ -225,7 +225,7 @@ export function MapaTrasy({data: {title = '', points, route, druhPresunu = 'PZT'
 						leftSection={<IconMapShare size={14}/>}
 						component="a"
 						target="_blank"
-						href={getMapyCzRouteUrl(validPoints, mapset, type)}
+						href={getMapyCzRouteUrl(validPoints, mapset, type) || undefined}
 						color="green"
 						variant="outline"
 						size="sm"
@@ -259,7 +259,7 @@ export function MapaTrasy({data: {title = '', points, route, druhPresunu = 'PZT'
 										leftSection={<IconMapShare size={14}/>}
 										component="a"
 										target="_blank"
-										href={getMapyCzShowMapUrl(point.lon, point.lat, mapset)}
+										href={getMapyCzShowMapUrl(point.lon, point.lat, mapset) || undefined}
 										color="green"
 										variant="outline"
 										size="compact-xs"
@@ -285,7 +285,7 @@ export function MapaTrasy({data: {title = '', points, route, druhPresunu = 'PZT'
 										leftSection={<IconMapShare size={14}/>}
 										component="a"
 										target="_blank"
-										href={getMapyCzShowMapUrl(point.lon, point.lat, mapset)}
+										href={getMapyCzShowMapUrl(point.lon, point.lat, mapset) || undefined}
 										color="green"
 										variant="outline"
 										size="compact-xs"

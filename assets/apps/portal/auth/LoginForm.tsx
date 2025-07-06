@@ -110,7 +110,7 @@ const LoginForm: React.FC<LoginFormProps> = ({onSuccess}) => {
 
 				<Box w={'60%'} h="100%" visibleFrom="lg">
 					<BackgroundImage
-						src={window.kct_portal.settings?.login_image}
+						src={window.kct_portal?.settings?.login_image || ''}
 						h="100%"
 						w="100%"
 						style={{backgroundSize: 'cover', backgroundPosition: 'left'}}

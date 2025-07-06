@@ -12,10 +12,8 @@ export interface FileAttachment {
 	rotation?: number;
 }
 
-export interface TravelSegment {
-	id: string;
-	startDate: Date;
-	endDate: Date;
+export interface Journey {
+	date: Date;
 	startTime: string;
 	endTime: string;
 	startPlace: string;
@@ -25,6 +23,12 @@ export interface TravelSegment {
 	ticketCosts: number;
 	attachments: FileAttachment[];
 	vehicleRegistration?: string; // Pro druhého řidiče
+}
+
+export interface TravelSegment {
+	id: string;
+	outbound: Journey;
+	return: Journey;
 	memberIndex?: number; // Pro kterého člena skupiny
 }
 

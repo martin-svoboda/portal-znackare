@@ -18,6 +18,5 @@
 		"assets/types",
 		"assets/apps/portal/**/*"
 	],
-	"exclude": ["node_modules", "build"],
-	"types": ["react", "react-dom"]
+	"exclude": ["node_modules", "build"]
 }

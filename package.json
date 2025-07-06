@@ -20,6 +20,8 @@
 	],
 	"devDependencies": {
 		"@types/leaflet": "^1.9.18",
+		"@types/react": "^19.1.8",
+		"@types/react-dom": "^19.1.6",
 		"@wordpress/api-fetch": "^7.17.0",
 		"@wordpress/scripts": "^30.16.0",
 		"node-sass-glob-importer": "^5.3.3",

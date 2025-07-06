@@ -15,6 +15,7 @@ import {
 	IconSun,
 	IconBooks,
 	IconFileDescription, IconChecklist, IconUser, IconLogout,
+    IconLayoutDashboard,
 } from "@tabler/icons-react";
 import {Routes, Route, useNavigate, useLocation,} from "react-router-dom";
 import React, {useMemo} from "react";
@@ -43,7 +44,7 @@ const staticNavItems = [
 ];
 
 const staticUserNavItems = [
-	{path: "/nastenka", label: "Moje nástěnka", icon: IconHome2},
+	{path: "/nastenka", label: "Moje nástěnka", icon: IconLayoutDashboard},
 	{path: "/prikazy", label: "Příkazy", icon: IconChecklist},
 	{path: "/profil", label: "Profil", icon: IconUser},
 ];
@@ -68,11 +69,10 @@ const ColorSchemeToggle = () => {
 const App: React.FC = () => {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const {logout, loggedIn, user} = useAuth();
+	const {logout, loggedIn} = useAuth();
 	const [opened, {toggle}] = useDisclosure();
 	const theme = useMantineTheme();
 
-	const isMetodikaDetail = location.pathname.startsWith("/metodika/") && location.pathname.split("/").length > 2;
 	const isActive = (path: string) => location.pathname === path;
 
 	const menuItems = useMemo(() => {
@@ -85,7 +85,7 @@ const App: React.FC = () => {
 		return [...customItems, ...staticNavItems];
 	}, []);
 
-	const NavLinkItem = ({item}) => {
+	const NavLinkItem = ({item}: {item: {path: string; label: string; icon?: any}}) => {
 		return (
 			<NavLink
 				active={isActive(item.path)}
@@ -104,7 +104,7 @@ const App: React.FC = () => {
 	return (
 		<AppShell
 			header={{height: 60}}
-			navbar={{width: 300, breakpoint: 'md', collapsed: {mobile: !opened}}}
+			navbar={{width: 220, breakpoint: 'md', collapsed: {mobile: !opened}}}
 			padding="md"
 		>
 			<AppShell.Header withBorder={false}>

@@ -422,7 +422,7 @@ const Prikaz = () => {
 											<Text size="sm">ID: {item.EvCi_TIM + item.Predmet_Index}</Text>
 										</Box>
 										{itemErrors.length > 0 && (
-											<Alert variant="light" color="red" size="sm" mb="sm" icon={alertIcon}>
+											<Alert variant="light" color="red" mb="sm" icon={alertIcon}>
 												<ul style={{margin: 0, paddingLeft: '20px'}}>
 													{itemErrors.map((error, index) => (
 														<li key={index}>{error}</li>

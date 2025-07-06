@@ -13,6 +13,7 @@ import {formatKm} from "../../shared/formatting";
 interface PrikazHeadProps {
 	head: any;
 	delka?: number | null;
+	simple?: boolean;
 }
 
 const Member = ({name, isLeader}: { name: string; isLeader: boolean }) =>

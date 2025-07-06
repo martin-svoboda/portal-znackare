@@ -117,24 +117,27 @@ const NahledTim = ({item}: { item: any }) => {
 								const textSize = item.Druh_Predmetu === "M" ? idx === 0 ? "lg" : "xs" : "sm";
 
 								// Společná funkce pro renderování textu
-								const renderTextContent = ( hideIcon = false) => line?.text?.split(/(\([^)]*\))/).flatMap((part, i) => {
-									if (part.startsWith('(') && part.endsWith(')')) {
-										return <small key={i}>{part}</small>;
-									}
-									// Použij novou globální funkci pro nahrazení ikon
-									return <span key={i}>{replaceTextWithIcons(part, 10, hideIcon)}</span>;
-								});
+								const renderTextContent = ( hideIcon = false) => {
+									if (!line?.text) return null;
+									return line.text.split(/(\([^)]*\))/).flatMap((part, i) => {
+										if (part.startsWith('(') && part.endsWith(')')) {
+											return <small key={i}>{part}</small>;
+										}
+										// Použij novou globální funkci pro nahrazení ikon
+										return <span key={i}>{replaceTextWithIcons(part, 10, hideIcon)}</span>;
+									});
+								};
 
 								return (
 									<Group
 										key={idx}
-										justify={line.km ? "space-between" : "center"}
+										justify={line?.km ? "space-between" : "center"}
 										w="100%"
 										mih={16}
 										gap={0}
 										pos="relative"
 									>
-										{line.km ? (
+										{line?.km ? (
 											<>
 												<Box style={{
 													display: 'flex',
@@ -153,7 +156,7 @@ const NahledTim = ({item}: { item: any }) => {
 														</Text>
 													</Box>
 												</Box>
-												<Text size={textSize} c="black">{line.km} km</Text>
+												<Text size={textSize} c="black">{line?.km} km</Text>
 											</>
 										) : item.Druh_Predmetu === "M" && idx === 0 ? (
 											<Box pos="absolute" bottom="-7px" w='120%'>

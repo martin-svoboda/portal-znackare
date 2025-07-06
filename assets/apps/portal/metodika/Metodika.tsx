@@ -63,7 +63,7 @@ const formatBytes = (size: number) => {
 const Metodika: React.FC = () => {
 	const theme = useMantineTheme();
 	const {terms, loadingTerms, error} = useMetodikaTerms();
-	const elements: MethodicalFile[] = window.kct_portal.settings?.methodical_files || [];
+	const elements: MethodicalFile[] = window.kct_portal?.settings?.methodical_files || [];
 	const blogName = window.kct_portal?.bloginfo?.name;
 
 	// Otypuj karty pro ActionCards

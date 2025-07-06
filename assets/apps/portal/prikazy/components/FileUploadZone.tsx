@@ -12,7 +12,8 @@ import {
 	Grid,
 	Alert,
 	Progress,
-	Flex
+	Flex,
+	Divider
 } from "@mantine/core";
 import {
 	IconUpload,
@@ -23,7 +24,10 @@ import {
 	IconFile,
 	IconPhoto,
 	IconX,
-	IconCheck
+	IconCheck,
+	IconCamera,
+	IconCameraOff,
+	IconCapture
 } from "@tabler/icons-react";
 import {Dropzone, FileWithPath} from "@mantine/dropzone";
 import {useAuth} from "../../auth/AuthContext";
@@ -37,22 +41,34 @@ interface FileUploadZoneProps {
 	maxSize?: number; // v MB
 	accept?: string;
 	disabled?: boolean;
+	enableCamera?: boolean; // nová možnost
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
-	files,
-	onFilesChange,
-	maxFiles = 5,
-	maxSize = 10,
-	accept = "image/jpeg,image/png,image/heic,application/pdf",
-	disabled = false
-}) => {
+																  files,
+																  onFilesChange,
+																  maxFiles = 5,
+																  maxSize = 10,
+																  accept = "image/jpeg,image/png,image/heic,application/pdf",
+																  disabled = false,
+																  enableCamera = true
+															  }) => {
 	const {user} = useAuth();
 	const [uploading, setUploading] = useState(false);
 	const [previewFile, setPreviewFile] = useState<FileAttachment | null>(null);
 	const [rotationAngle, setRotationAngle] = useState(0);
+
+	// Camera states
+	const [cameraOpen, setCameraOpen] = useState(false);
+	const [stream, setStream] = useState<MediaStream | null>(null);
+	const [cameraError, setCameraError] = useState<string | null>(null);
+	const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+	const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+	const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
+	const videoRef = useRef<HTMLVideoElement>(null);
+	const canvasRef = useRef<HTMLCanvasElement>(null);
 
 	const isImage = (filename: string) => {
 		return /\.(jpg|jpeg|png|gif|bmp|webp|heic)$/i.test(filename);
@@ -104,7 +120,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 		});
 	};
 
-	const uploadFile = async (file: FileWithPath): Promise<FileAttachment> => {
+	const uploadFile = async (file: FileWithPath | File): Promise<FileAttachment> => {
 		let processedFile = file;
 
 		// Konverze HEIC na JPEG
@@ -138,6 +154,123 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 			thumbnailUrl,
 			rotation: 0
 		};
+	};
+
+	// Camera functions
+	const startCamera = async () => {
+		setCameraError(null);
+		try {
+			const mediaStream = await navigator.mediaDevices.getUserMedia({
+				video: {
+					facingMode: facingMode,
+					width: { ideal: 1920 },
+					height: { ideal: 1080 }
+				}
+			});
+
+			setStream(mediaStream);
+			setCameraOpen(true);
+
+			if (videoRef.current) {
+				videoRef.current.srcObject = mediaStream;
+			}
+		} catch (error) {
+			console.error('Chyba při spouštění kamery:', error);
+			setCameraError('Nepodařilo se spustit kameru. Zkontrolujte oprávnění.');
+		}
+	};
+
+	const stopCamera = () => {
+		if (stream) {
+			stream.getTracks().forEach(track => track.stop());
+			setStream(null);
+		}
+		setCameraOpen(false);
+		setCameraError(null);
+		setCapturedPhoto(null);
+		setPhotoBlob(null);
+	};
+
+	const switchCamera = async () => {
+		const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+		setFacingMode(newFacingMode);
+
+		if (stream) {
+			stopCamera();
+			// Malá pauza před spuštěním nové kamery
+			setTimeout(() => {
+				startCamera();
+			}, 100);
+		}
+	};
+
+	const capturePhoto = async () => {
+		if (!videoRef.current || !canvasRef.current) return;
+
+		const video = videoRef.current;
+		const canvas = canvasRef.current;
+		const ctx = canvas.getContext('2d');
+
+		if (!ctx) return;
+
+		// Nastavení rozměrů canvas podle videa
+		canvas.width = video.videoWidth;
+		canvas.height = video.videoHeight;
+
+		// Zachycení aktuálního snímku z videa
+		ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+		// Převod na blob a zobrazení pro potvrzení
+		canvas.toBlob((blob) => {
+			if (blob) {
+				const photoUrl = URL.createObjectURL(blob);
+				setCapturedPhoto(photoUrl);
+				setPhotoBlob(blob);
+			}
+		}, 'image/jpeg', 0.9);
+	};
+
+	const confirmPhoto = async () => {
+		if (!photoBlob) return;
+
+		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+		const filename = `foto-${timestamp}.jpg`;
+
+		const file = new File([photoBlob], filename, {
+			type: 'image/jpeg',
+			lastModified: Date.now()
+		});
+
+		try {
+			setUploading(true);
+			const uploadedFile = await uploadFile(file);
+			onFilesChange([...files, uploadedFile]);
+
+			notifications.show({
+				title: "Foto uloženo",
+				message: `Foto ${filename} bylo úspěšně přidáno`,
+				color: "green"
+			});
+
+			// Zavření kamery po potvrzení
+			stopCamera();
+		} catch (error) {
+			notifications.show({
+				title: "Chyba při ukládání",
+				message: "Nepodařilo se uložit foto",
+				color: "red"
+			});
+		} finally {
+			setUploading(false);
+		}
+	};
+
+	const discardPhoto = () => {
+		if (capturedPhoto) {
+			URL.revokeObjectURL(capturedPhoto);
+		}
+		setCapturedPhoto(null);
+		setPhotoBlob(null);
 	};
 
 	const handleDrop = useCallback(async (acceptedFiles: FileWithPath[]) => {
@@ -192,9 +325,9 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 	};
 
 	const rotateImage = (fileId: string, degrees: number) => {
-		const updatedFiles = files.map(f => 
-			f.id === fileId 
-				? {...f, rotation: (f.rotation || 0) + degrees} 
+		const updatedFiles = files.map(f =>
+			f.id === fileId
+				? {...f, rotation: (f.rotation || 0) + degrees}
 				: f
 		);
 		onFilesChange(updatedFiles);
@@ -294,37 +427,58 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 	return (
 		<Box>
 			{!disabled && files.length < maxFiles && (
-				<Dropzone
-					onDrop={handleDrop}
-					accept={accept.split(',').reduce((acc, type) => {
-						acc[type.trim()] = [];
-						return acc;
-					}, {} as Record<string, string[]>)}
-					maxSize={maxSize * 1024 * 1024}
-					loading={uploading}
-					disabled={disabled}
-				>
-					<Group justify="center" gap="xl" style={{minHeight: 100}}>
-						<Dropzone.Accept>
-							<IconUpload size={50} color="var(--mantine-color-blue-6)" />
-						</Dropzone.Accept>
-						<Dropzone.Reject>
-							<IconX size={50} color="var(--mantine-color-red-6)" />
-						</Dropzone.Reject>
-						<Dropzone.Idle>
-							<IconPhoto size={50} color="var(--mantine-color-dimmed)" />
-						</Dropzone.Idle>
+				<Stack gap="md">
+					{/* Dropzone pro nahrávání souborů */}
+					<Dropzone
+						onDrop={handleDrop}
+						accept={accept.split(',').reduce((acc, type) => {
+							acc[type.trim()] = [];
+							return acc;
+						}, {} as Record<string, string[]>)}
+						maxSize={maxSize * 1024 * 1024}
+						loading={uploading}
+						disabled={disabled}
+					>
+						<Group justify="center" gap="xl" style={{minHeight: 100}}>
+							<Dropzone.Accept>
+								<IconUpload size={50} color="var(--mantine-color-blue-6)" />
+							</Dropzone.Accept>
+							<Dropzone.Reject>
+								<IconX size={50} color="var(--mantine-color-red-6)" />
+							</Dropzone.Reject>
+							<Dropzone.Idle>
+								<IconPhoto size={50} color="var(--mantine-color-dimmed)" />
+							</Dropzone.Idle>
 
-						<div>
-							<Text size="xl" inline>
-								Přetáhněte soubory sem nebo klikněte pro výběr
-							</Text>
-							<Text size="sm" c="dimmed" inline mt={7}>
-								Maximálně {maxFiles} souborů, každý do {maxSize}MB
-							</Text>
-						</div>
-					</Group>
-				</Dropzone>
+							<div>
+								<Text size="xl" inline>
+									Přetáhněte soubory sem nebo klikněte pro výběr
+								</Text>
+								<Text size="sm" c="dimmed" inline mt={7}>
+									Maximálně {maxFiles} souborů, každý do {maxSize}MB
+								</Text>
+							</div>
+						</Group>
+					</Dropzone>
+
+					{/* Kamera tlačítko */}
+					{enableCamera && 'mediaDevices' in navigator && (
+						<>
+							<Divider label="nebo" labelPosition="center" />
+							<Group justify="center">
+								<Button
+									leftSection={<IconCamera size={20} />}
+									variant="light"
+									size="lg"
+									onClick={startCamera}
+									disabled={disabled || uploading}
+								>
+									Vyfotit pomocí kamery
+								</Button>
+							</Group>
+						</>
+					)}
+				</Stack>
 			)}
 
 			{uploading && (
@@ -345,6 +499,114 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 					</Grid>
 				</Box>
 			)}
+
+			{/* Camera Modal */}
+			<Modal
+				opened={cameraOpen}
+				onClose={stopCamera}
+				title="Kamera"
+				size="xl"
+				centered
+			>
+				<Stack>
+					{cameraError ? (
+						<Alert color="red" title="Chyba kamery">
+							{cameraError}
+						</Alert>
+					) : capturedPhoto ? (
+						<>
+							{/* Photo confirmation view */}
+							<Box pos="relative" style={{ textAlign: 'center' }}>
+								<Text size="lg" fw={500} mb="md">
+									Zkontrolujte kvalitu fotky
+								</Text>
+								<Image
+									src={capturedPhoto}
+									alt="Zachycená fotka"
+									style={{
+										width: '100%',
+										maxHeight: '60vh',
+										objectFit: 'contain',
+										borderRadius: '8px',
+										border: '2px solid var(--mantine-color-gray-3)'
+									}}
+								/>
+							</Box>
+
+							<Group justify="center" gap="md">
+								<Button
+									variant="light"
+									color="red"
+									leftSection={<IconX size={16} />}
+									onClick={discardPhoto}
+									size="lg"
+								>
+									Zahodit a vyfotit znovu
+								</Button>
+
+								<Button
+									color="green"
+									leftSection={<IconCheck size={16} />}
+									onClick={confirmPhoto}
+									loading={uploading}
+									size="lg"
+								>
+									Potvrdit a uložit
+								</Button>
+							</Group>
+						</>
+					) : (
+						<>
+							{/* Live camera view */}
+							<Box pos="relative" style={{ textAlign: 'center' }}>
+								<video
+									ref={videoRef}
+									autoPlay
+									playsInline
+									muted
+									style={{
+										width: '100%',
+										maxHeight: '60vh',
+										objectFit: 'cover',
+										borderRadius: '8px'
+									}}
+								/>
+								<canvas
+									ref={canvasRef}
+									style={{ display: 'none' }}
+								/>
+							</Box>
+
+							<Group justify="center" gap="md">
+								<Button
+									variant="light"
+									leftSection={<IconRotateClockwise size={16} />}
+									onClick={switchCamera}
+								>
+									Přepnout kameru
+								</Button>
+
+								<Button
+									size="lg"
+									leftSection={<IconCapture size={20} />}
+									onClick={capturePhoto}
+								>
+									Zachytit foto
+								</Button>
+
+								<Button
+									variant="light"
+									color="red"
+									leftSection={<IconCameraOff size={16} />}
+									onClick={stopCamera}
+								>
+									Zavřít kameru
+								</Button>
+							</Group>
+						</>
+					)}
+				</Stack>
+			</Modal>
 
 			{/* Preview Modal */}
 			<Modal

@@ -257,24 +257,6 @@ const ProtectedContent = () => {
 				/>
 			</Group>
 		),
-		renderRowActionMenuItems: ({row}) => (
-			<>
-				<Menu.Item
-					icon={<IconEdit size={24} stroke={1.2}/>}
-					onClick={() => console.info('Upravit', row.original)}
-					aria-label="Upravit příkaz"
-				>
-					Upravit data
-				</Menu.Item>
-				<Menu.Item
-					icon={<IconCashBanknotePlus size={24} stroke={1.2}/>}
-					onClick={() => console.info('Vyúčtovat', row.original)}
-					aria-label="Vyúčtovat příkaz"
-				>
-					Vyúčtovat
-				</Menu.Item>
-			</>
-		),
 	});
 
 	return (
