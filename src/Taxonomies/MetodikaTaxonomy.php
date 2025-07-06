@@ -14,17 +14,18 @@ class MetodikaTaxonomy {
 	public function __construct( CustomFields $wcf ) {
 		$this->wcf = $wcf;
 		add_action( 'init', array( $this, 'register_taxonomy' ) );
+		add_action( 'init', array( $this, 'setup' ) );
 	}
 
 	public function setup() {
 		$this->wcf->create_taxonomy_options( array(
+			'id'       => self::KEY . '_options',
 			'taxonomy' => self::KEY,
 			'items'    => array(
 				array(
-					'type'            => 'attachment',
-					'id'              => 'image',
-					'title'           => __( 'Obrázek', 'kct' ),
-					'attachment_type' => 'image',
+					'type'  => 'attachment',
+					'id'    => 'file',
+					'title' => __( 'Soubor ke stažení', 'kct' ),
 				),
 			),
 		) );
@@ -46,6 +47,7 @@ class MetodikaTaxonomy {
 				'show_admin_column' => true,
 				'hierarchical'      => true,
 				'show_in_rest'      => true,
+				'menu_icon'         => "book",
 				'query_var'         => self::KEY,
 				'rewrite'           => [ 'slug' => MetodikaPostType::KEY ],
 			)

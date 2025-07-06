@@ -49,29 +49,58 @@ class Settings {
 					'attachment_type' => 'image',
 				),
 				array(
-					'id'    => 'methodical_files',
-					'type'  => 'multi_group',
-					'label' => 'Soubory metodiky',
-					'items' => array(
+					'id'          => 'downloads',
+					'type'        => 'multi_group',
+					'label'       => 'Soubory ke stažení',
+					'description' => 'Doplňte další soubory ke stažení dle kategorií. Soubory metodiky vložte přímo do nastavení oddílů metodik.',
+					'items'       => array(
 						array(
-							'id'    => 'title',
+							'id'    => 'category',
 							'type'  => 'text',
-							'label' => 'Název',
+							'label' => 'Název kategorie souborů',
 						),
 						array(
-							'id'    => 'description',
-							'type'  => 'text',
-							'label' => 'Popisek',
+							'id'    => 'files',
+							'type'  => 'multi_group',
+							'label' => 'Soubory',
+							'items' => array(
+								array(
+									'id'    => 'title',
+									'type'  => 'text',
+									'label' => 'Název',
+								),
+								array(
+									'id'    => 'description',
+									'type'  => 'text',
+									'label' => 'Popisek',
+								),
+								array(
+									'id'    => 'file',
+									'type'  => 'attachment',
+									'label' => 'Soubor',
+								)
+							)
 						),
-						array(
-							'id'    => 'file',
-							'type'  => 'attachment',
-							'label' => 'Soubor',
-						)
 					)
 				),
 			),
 
 		) );
+	}
+
+	public function get_options() {
+		return get_option( self::KEY );
+	}
+
+	public function get_option( $key ) {
+		$options = $this->get_options();
+		if ( ! $options ) {
+			return null;
+		}
+		if ( ! isset( $options[ $key ] ) ) {
+			return null;
+		}
+
+		return $options[ $key ];
 	}
 }

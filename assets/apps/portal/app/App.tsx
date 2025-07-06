@@ -15,7 +15,7 @@ import {
 	IconSun,
 	IconBooks,
 	IconFileDescription, IconChecklist, IconUser, IconLogout,
-    IconLayoutDashboard,
+	IconLayoutDashboard, IconDownload,
 } from "@tabler/icons-react";
 import {Routes, Route, useNavigate, useLocation,} from "react-router-dom";
 import React, {useMemo} from "react";
@@ -38,9 +38,11 @@ import HlaseniPrikazu from "../prikazy/HlaseniPrikazu";
 import Profil from "../user/Profil";
 import MetodikaTerm from "../metodika/MetodikaTerm";
 import UserWidget from "../auth/UserWidget";
+import Downloads from "../downloads/Downloads";
 
 const staticNavItems = [
 	{path: "/metodika", label: "Metodika", icon: IconBooks},
+	{path: "/downloads", label: "Ke stažení", icon: IconDownload},
 ];
 
 const staticUserNavItems = [
@@ -173,6 +175,7 @@ const App: React.FC = () => {
 					<Route path="/prikazy" element={<Prikazy/>}/>
 					<Route path="/prikaz/:id" element={<Prikaz/>}/>
 					<Route path="/prikaz/:id/hlaseni" element={<HlaseniPrikazu/>}/>
+					<Route path="/downloads" element={<Downloads/>}/>
 					<Route path="/metodika/*" element={
 						<MetodikaTermsProvider>
 							<Routes>

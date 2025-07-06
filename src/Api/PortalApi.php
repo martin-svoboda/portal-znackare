@@ -4,6 +4,7 @@ namespace PortalZnackare\Api;
 
 use PortalZnackare\Managers\ApiManager;
 use PortalZnackare\Repositories\MetodikaRepository;
+use PortalZnackare\Settings;
 use PortalZnackare\Taxonomies\MetodikaTaxonomy;
 use WP_Error;
 use WP_REST_Controller;
@@ -18,7 +19,8 @@ class PortalApi extends WP_REST_Controller {
 	 */
 	public function __construct(
 		private MetodikaRepository $metodika_repository,
-		private MetodikaTaxonomy $metodika_taxonomy
+		private MetodikaTaxonomy $metodika_taxonomy,
+		private Settings $settings,
 	) {
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 	}
@@ -58,6 +60,16 @@ class PortalApi extends WP_REST_Controller {
 			array(
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_metodika_terms' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+
+		register_rest_route(
+			ApiManager::PATH,
+			'/downloads',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_downloads' ),
 				'permission_callback' => '__return_true',
 			)
 		);
@@ -162,6 +174,70 @@ class PortalApi extends WP_REST_Controller {
 
 	public function get_metodika_terms( $request ) {
 		$response = $this->metodika_taxonomy->get_terms();
+
+		foreach ( $response as $key => $term ) {
+			$file = get_term_meta( $term['term_id'], 'file', true );
+
+			if ( empty( $file ) ) {
+				continue;
+			}
+
+			$path                           = get_attached_file( $file );
+			$response[ $key ]['file_url'] = esc_url( wp_get_attachment_url( $file ) );
+			$response[ $key ]['file_size'] = filesize( $path );
+			$response[ $key ]['file_type'] = wp_check_filetype( $path )['ext'];
+		}
+
+		return rest_ensure_response( $response );
+	}
+
+	public function get_downloads( $request ) {
+		$metodika       = $this->metodika_taxonomy->get_terms();
+		$metodika_files = [];
+		$response       = [];
+
+		foreach ( $metodika as $key => $term ) {
+			$file = get_term_meta( $term['term_id'], 'file', true );
+
+			if ( empty( $file ) ) {
+				continue;
+			}
+
+			$path                           = get_attached_file( $file );
+			$metodika_files[ $key ]['title'] = $term['name'];
+			$metodika_files[ $key ]['description'] = $term['description'];
+			$metodika_files[ $key ]['file'] = esc_url( wp_get_attachment_url( $file ) );
+			$metodika_files[ $key ]['size'] = filesize( $path );
+			$metodika_files[ $key ]['type'] = wp_check_filetype( $path )['ext'];
+		}
+
+		if ( ! empty( $metodika_files ) ) {
+			$response[] = array(
+				'category' => 'Metodika',
+				'files'    => $metodika_files,
+			);
+		}
+
+		$downloads = $this->settings->get_option( 'downloads' );
+		foreach ( $downloads as $key => $category ) {
+
+			if ( empty( $category['files'] ) ) {
+				continue;
+			}
+
+			foreach ( $category['files'] as $i => $file ) {
+				if ( ! empty( $file['file'] ) ) {
+					$path                                     = get_attached_file( $file['file'] );
+					$downloads[ $key ]['files'][ $i ]['file'] = esc_url( wp_get_attachment_url( $file['file'] ) );
+					$downloads[ $key ]['files'][ $i ]['size'] = filesize( $path );
+					$downloads[ $key ]['files'][ $i ]['type'] = wp_check_filetype( $path )['ext'];
+				}
+			}
+		}
+
+		if ( ! empty( $downloads ) ) {
+			$response = array_merge( $response, $downloads );
+		}
 
 		return rest_ensure_response( $response );
 	}
