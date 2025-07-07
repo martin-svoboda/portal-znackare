@@ -18,7 +18,7 @@ import {
 	Alert
 } from "@mantine/core";
 import {IconAlertTriangleFilled, IconPrinter} from "@tabler/icons-react";
-import {useParams, useNavigate} from "react-router-dom";
+import {useParams} from "react-router-dom";
 import {apiRequest} from "../shared/api";
 import {notifications} from "@mantine/notifications";
 import {Helmet} from "react-helmet-async";
@@ -39,6 +39,7 @@ import {PrikazTypeIcon} from "./PrikazTypeIcon";
 import RequireLogin from "../auth/RequireLogin";
 import {formatKm, formatUsekType, formatTimStatus} from "../shared/formatting";
 import {PrikazHead} from "./components/PrikazHead";
+import {ProvedeniPrikazu} from "./components/ProvedeniPrikazu";
 import {replaceTextWithIcons} from "../shared/textIconReplacer";
 import PrintablePrikaz from "./components/PrintablePrikaz";
 import {usePdfGenerator} from "./hooks/usePdfGenerator";
@@ -194,7 +195,6 @@ const Prikaz = () => {
 	const {id} = useParams();
 	const {getIntAdr} = useAuth();
 	const intAdr = getIntAdr();
-	const navigate = useNavigate();
 	const {generatePDF, isGenerating} = usePdfGenerator();
 
 	const [head, setHead] = useState<any>(null);
@@ -330,17 +330,6 @@ const Prikaz = () => {
 		[]
 	);
 
-	const handleHlaseni = () => {
-		// Předáme data přes state při navigaci
-		navigate(`/prikaz/${id}/hlaseni`, {
-			state: {
-				head,
-				predmety,
-				useky,
-				delka
-			}
-		});
-	};
 
 	const handlePrintPDF = async () => {
 		const filename = `prikaz_${head?.Cislo_ZP || id}_kontrolni_formular.pdf`;
@@ -457,32 +446,6 @@ const Prikaz = () => {
 						<PrikazHead head={head} delka={delka}/>
 					)}
 				</Card>
-				{head && head.Stav_ZP_Naz && isNezpracovany(head.Stav_ZP_Naz) && (
-					<Group>
-						<Button
-							color="blue"
-							onClick={handleHlaseni}
-						>
-							Podat hlášení
-						</Button>
-						<Button
-							variant="outline"
-							leftSection={<IconPrinter size={16}/>}
-							onClick={handlePrintPDF}
-							loading={isGenerating}
-						>
-							Kontrolní formulář PDF
-						</Button>
-						{(window as any).kct_portal?.is_admin && (
-							<Button
-								variant="outline"
-								onClick={() => setShowPrintPreview(!showPrintPreview)}
-							>
-								{showPrintPreview ? 'Skrýt náhled' : 'Zobrazit náhled formuláře'}
-							</Button>
-						)}
-					</Group>
-				)}
 				{(useky.length > 0 || soubeh.length > 1) &&
 					<Card shadow="sm" padding="sm" mb="xl">
 						<Title order={3} mb="sm">Úseky tras k obnově</Title>
@@ -507,10 +470,49 @@ const Prikaz = () => {
 					</Card>
 				}
 
+				{/* Sekce Provedení příkazu */}
+				<Card shadow="sm" padding="sm" mb="xl">
+					{loading ? (
+						<Loader/>
+					) : head && head.Stav_ZP_Naz && (
+						<ProvedeniPrikazu
+							prikazId={id!}
+							head={head}
+							useky={useky}
+							predmety={predmety}
+							delka={delka}
+						/>
+					)}
+					{head && head.Stav_ZP_Naz && isNezpracovany(head.Stav_ZP_Naz) && (
+						<>
+							<Divider my="xs"/>
+							<Group>
+								<Button
+									variant="outline"
+									leftSection={<IconPrinter size={16}/>}
+									onClick={handlePrintPDF}
+									loading={isGenerating}
+								>
+									Kontrolní formulář PDF
+								</Button>
+								{(window as any).kct_portal?.is_admin && (
+									<Button
+										variant="outline"
+										onClick={() => setShowPrintPreview(!showPrintPreview)}
+									>
+										{showPrintPreview ? 'Skrýt náhled' : 'Zobrazit náhled formuláře'}
+									</Button>
+								)}
+							</Group>
+						</>
+					)}
+				</Card>
+
 				<Card shadow="sm" padding="sm" mb="xl">
 					<Title order={3} mb="sm">Informační místa na trase</Title>
 					{specialAlert ? (
-						<Alert variant="light" color="red" mb="md" title={specialAlert.title} icon={<IconAlertTriangleFilled />}>
+						<Alert variant="light" color="red" mb="md" title={specialAlert.title}
+							   icon={<IconAlertTriangleFilled/>}>
 							{specialAlert.message}
 						</Alert>
 					) : (

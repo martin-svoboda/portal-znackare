@@ -14,6 +14,11 @@
 	// Nutné pro Gutenberg bloky
 	wp_enqueue_style('wp-block-library');
 
+	$title       = '';
+	$description = '';
+	$image       = '';
+	$url         = '';
+
 	// Fallback data z aktuální WP stránky
 	if ( have_posts() ) :
 		the_post();

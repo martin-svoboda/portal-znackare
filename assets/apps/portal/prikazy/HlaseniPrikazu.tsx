@@ -13,7 +13,8 @@ import {
 	Alert,
 	Box,
 	Grid,
-	Stepper
+	Stepper,
+	Textarea
 } from "@mantine/core";
 import {
 	IconReportMoney,
@@ -62,7 +63,8 @@ const HlaseniPrikazu = () => {
 	const [useky, setUseky] = useState<any[]>(locationData?.useky || []);
 	const [loading, setLoading] = useState(!locationData);
 	const [saving, setSaving] = useState(false);
-	
+	const [reportLoaded, setReportLoaded] = useState(false);
+
 	// Inicializace kroku z URL parametru
 	const [activeStep, setActiveStep] = useState(() => {
 		const stepParam = searchParams.get('step');
@@ -138,24 +140,83 @@ const HlaseniPrikazu = () => {
 			.finally(() => setLoading(false));
 	}, [intAdr, id, locationData, navigate]);
 
-	// Načítání existujícího hlášení
+	// Načítání existujícího hlášení z nového API endpointu
 	useEffect(() => {
-		if (!head?.Cislo_ZP) return;
+		if (!intAdr || !id) {
+			setReportLoaded(true);
+			return;
+		}
 
-		apiRequest("/hlaseni", "GET", {int_adr: intAdr, id})
+		apiRequest("/report", "GET", {int_adr: intAdr, id_zp: id})
 			.then(result => {
-				if (result.data) {
-					setFormData(result.data);
+				if (result && result.data_a) {
+					// Převod dat z API do formData struktury
+					const loadedData: Partial<HlaseniFormData> = {};
+
+					// Načtení části A
+					if (result.data_a) {
+						Object.assign(loadedData, result.data_a);
+						// Převod dat na Date objekty
+						if (loadedData.executionDate) {
+							loadedData.executionDate = new Date(loadedData.executionDate);
+						}
+						if (loadedData.travelSegments) {
+							loadedData.travelSegments = loadedData.travelSegments.map(segment => ({
+								...segment,
+								outbound: {
+									...segment.outbound,
+									date: new Date(segment.outbound.date)
+								},
+								return: {
+									...segment.return,
+									date: new Date(segment.return.date)
+								}
+							}));
+						}
+						if (loadedData.accommodations) {
+							loadedData.accommodations = loadedData.accommodations.map(acc => ({
+								...acc,
+								date: new Date(acc.date)
+							}));
+						}
+						if (loadedData.additionalExpenses) {
+							loadedData.additionalExpenses = loadedData.additionalExpenses.map(exp => ({
+								...exp,
+								date: new Date(exp.date)
+							}));
+						}
+					}
+
+					// Načtení části B
+					if (result.data_b) {
+						Object.assign(loadedData, result.data_b);
+					}
+
+					// Načtení výpočtu (pokud existuje)
+					if (result.calculation) {
+						loadedData.calculation = result.calculation;
+					}
+
+					// Nastavení statusu
+					if (result.state) {
+						loadedData.status = result.state === 'send' ? 'submitted' : 'draft';
+					}
+
+					setFormData(prev => ({...prev, ...loadedData}));
 				}
 			})
 			.catch(err => {
-				// Hlášení ještě neexistuje, to je v pořádku
+				// Report ještě neexistuje, to je v pořádku
+				console.log('Report does not exist yet');
+			})
+			.finally(() => {
+				setReportLoaded(true);
 			});
-	}, [intAdr, id, head?.Cislo_ZP]);
+	}, [intAdr, id]);
 
-	// Načítání ceníku při změně data provedení
+	// Načítání ceníku při změně data provedení - až po načtení reportu
 	useEffect(() => {
-		if (!formData.executionDate) return;
+		if (!formData.executionDate || !reportLoaded) return;
 
 		const dateStr = formData.executionDate.toISOString().split('T')[0];
 		apiRequest("/ceniky", "GET", {date: dateStr})
@@ -169,7 +230,7 @@ const HlaseniPrikazu = () => {
 					color: "yellow"
 				});
 			});
-	}, [formData.executionDate]);
+	}, [formData.executionDate, reportLoaded]);
 
 	// Automatické označování částí jako dokončené
 	useEffect(() => {
@@ -212,28 +273,62 @@ const HlaseniPrikazu = () => {
 
 	const canEditOthers = isLeader;
 
-	const saveForm = async (showNotification = true) => {
+	const saveForm = async (showNotification = true, state = 'draft') => {
 		setSaving(true);
 		try {
-			await apiRequest("/hlaseni", "POST", {
+			// Příprava dat pro API
+			const dataA = {
+				executionDate: formData.executionDate,
+				travelSegments: formData.travelSegments,
+				primaryDriver: formData.primaryDriver,
+				vehicleRegistration: formData.vehicleRegistration,
+				higherKmRate: formData.higherKmRate,
+				accommodations: formData.accommodations,
+				additionalExpenses: formData.additionalExpenses,
+				partACompleted: formData.partACompleted
+			};
+
+			const dataB = {
+				timReports: formData.timReports,
+				routeComment: formData.routeComment,
+				routeAttachments: formData.routeAttachments,
+				partBCompleted: formData.partBCompleted
+			};
+
+			// Výpočet náhrad pouze při finálním odeslání
+			let calculation = null;
+			if (state === 'send' && priceList) {
+				// TODO: Implementovat výpočet náhrad
+				calculation = {
+					paymentRedirects: formData.paymentRedirects
+				};
+			}
+
+			await apiRequest("/report", "POST", {
 				int_adr: intAdr,
-				id,
-				data: formData
+				id_zp: parseInt(id || '0'),
+				cislo_zp: head?.Cislo_ZP || '',
+				je_vedouci: isLeader,
+				data_a: dataA,
+				data_b: dataB,
+				calculation: calculation,
+				state: state
 			});
 
 			if (showNotification) {
 				notifications.show({
 					title: "Uloženo",
-					message: "Hlášení bylo úspěšně uloženo",
+					message: state === 'send' ? "Hlášení bylo úspěšně odesláno" : "Hlášení bylo úspěšně uloženo",
 					color: "green"
 				});
 			}
 		} catch (err) {
 			notifications.show({
 				title: "Chyba",
-				message: "Nepodařilo se uložit hlášení",
+				message: state === 'send' ? "Nepodařilo se odeslat hlášení" : "Nepodařilo se uložit hlášení",
 				color: "red"
 			});
+			throw err;
 		} finally {
 			setSaving(false);
 		}
@@ -422,7 +517,7 @@ const HlaseniPrikazu = () => {
 						) : (
 							<Card shadow="sm" padding="lg">
 								<Title order={4} mb="md">Hlášení o značkařské činnosti</Title>
-								
+
 								<Stack gap="md">
 									<Box>
 										<Text fw={500} mb="xs">Hlášení o provedené činnosti</Text>
@@ -632,24 +727,15 @@ const HlaseniPrikazu = () => {
 										color="blue"
 										leftSection={<IconSend size={20}/>}
 										disabled={!formData.partACompleted || !formData.partBCompleted}
-										onClick={() => {
-											// Odeslání ke schválení
-											apiRequest("/hlaseni/submit", "POST", {int_adr: intAdr, id})
-												.then(() => {
-													notifications.show({
-														title: "Odesláno",
-														message: "Hlášení bylo úspěšně odesláno ke schválení",
-														color: "green"
-													});
-													navigate(`/prikaz/${id}`);
-												})
-												.catch(() => {
-													notifications.show({
-														title: "Chyba",
-														message: "Nepodařilo se odeslat hlášení",
-														color: "red"
-													});
-												});
+										loading={saving}
+										onClick={async () => {
+											// Odeslání ke schválení s state='send'
+											try {
+												await saveForm(true, 'send');
+												navigate(`/prikaz/${id}`);
+											} catch (err) {
+												// Chyba už byla zobrazena v saveForm
+											}
 										}}
 									>
 										Odeslat ke schválení

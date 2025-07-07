@@ -3,7 +3,9 @@
 namespace PortalZnackare\Api;
 
 use PortalZnackare\Managers\ApiManager;
+use PortalZnackare\Models\ReportModel;
 use PortalZnackare\Repositories\MetodikaRepository;
+use PortalZnackare\Repositories\ReportRepository;
 use PortalZnackare\Settings;
 use PortalZnackare\Taxonomies\MetodikaTaxonomy;
 use WP_Error;
@@ -21,6 +23,7 @@ class PortalApi extends WP_REST_Controller {
 		private MetodikaRepository $metodika_repository,
 		private MetodikaTaxonomy $metodika_taxonomy,
 		private Settings $settings,
+		private ReportRepository $report_repository
 	) {
 		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 	}
@@ -71,6 +74,52 @@ class PortalApi extends WP_REST_Controller {
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_downloads' ),
 				'permission_callback' => '__return_true',
+			)
+		);
+
+		register_rest_route(
+			ApiManager::PATH,
+			'/ceniky',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_ceniky' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+
+		register_rest_route(
+			ApiManager::PATH,
+			'/report',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_report' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'int_adr' => array(
+						'required' => true,
+					),
+					'id_zp'   => array(
+						'required' => true,
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			ApiManager::PATH,
+			'/report',
+			array(
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => array( $this, 'set_report' ),
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'int_adr' => array(
+						'required' => true,
+					),
+					'id_zp'   => array(
+						'required' => true,
+					),
+				),
 			)
 		);
 	}
@@ -182,8 +231,8 @@ class PortalApi extends WP_REST_Controller {
 				continue;
 			}
 
-			$path                           = get_attached_file( $file );
-			$response[ $key ]['file_url'] = esc_url( wp_get_attachment_url( $file ) );
+			$path                          = get_attached_file( $file );
+			$response[ $key ]['file_url']  = esc_url( wp_get_attachment_url( $file ) );
 			$response[ $key ]['file_size'] = filesize( $path );
 			$response[ $key ]['file_type'] = wp_check_filetype( $path )['ext'];
 		}
@@ -203,12 +252,12 @@ class PortalApi extends WP_REST_Controller {
 				continue;
 			}
 
-			$path                           = get_attached_file( $file );
-			$metodika_files[ $key ]['title'] = $term['name'];
+			$path                                  = get_attached_file( $file );
+			$metodika_files[ $key ]['title']       = $term['name'];
 			$metodika_files[ $key ]['description'] = $term['description'];
-			$metodika_files[ $key ]['file'] = esc_url( wp_get_attachment_url( $file ) );
-			$metodika_files[ $key ]['size'] = filesize( $path );
-			$metodika_files[ $key ]['type'] = wp_check_filetype( $path )['ext'];
+			$metodika_files[ $key ]['file']        = esc_url( wp_get_attachment_url( $file ) );
+			$metodika_files[ $key ]['size']        = filesize( $path );
+			$metodika_files[ $key ]['type']        = wp_check_filetype( $path )['ext'];
 		}
 
 		if ( ! empty( $metodika_files ) ) {
@@ -238,6 +287,112 @@ class PortalApi extends WP_REST_Controller {
 		if ( ! empty( $downloads ) ) {
 			$response = array_merge( $response, $downloads );
 		}
+
+		return rest_ensure_response( $response );
+	}
+
+	public function get_ceniky( $request ) {
+		$response       = [];
+
+		return rest_ensure_response( $response );
+	}
+
+	public function get_report( $request ) {
+		$int_adr  = intval( $request['int_adr'] );
+		$id_zp    = intval( $request['id_zp'] );
+
+		// Validace vstupních parametrů
+		if ( empty( $int_adr ) || empty( $id_zp ) ) {
+			return new WP_Error(
+				'missing_parameters',
+				'Chybý vyžadované parametry volání int_adr nebo id_zp.',
+				[ 'status' => 401 ]
+			);
+		}
+
+		$reports = $this->report_repository->find_by_zp_and_user( $id_zp, $int_adr );
+
+		// Vrátíme první report nebo null
+		if ( empty( $reports ) ) {
+			return "";
+		}
+
+		$report = $reports[0];
+		$response = $report->to_array();
+
+		$response['data_a'] = ! empty( $response['data_a'] ) ? json_decode( $response['data_a'], true ) : [];
+		$response['data_b'] = ! empty( $response['data_b'] ) ? json_decode( $response['data_b'], true ) : [];
+		$response['calculation'] = ! empty( $response['calculation'] ) ? json_decode( $response['calculation'], true ) : [];
+
+		// Kontrola JSON chyb
+		if ( json_last_error() !== JSON_ERROR_NONE ) {
+			return new WP_Error(
+				'json_decode_error',
+				'Chyba při dekódování JSON dat',
+				[ 'status' => 500 ]
+			);
+		}
+
+		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * @param WP_REST_Request $request Full data about the request.
+	 *
+	 * @return WP_Error|\WP_HTTP_Response|WP_REST_Response
+	 * @throws \PortalZnackareDeps\Wpify\Model\Exceptions\KeyNotFoundException
+	 * @throws \PortalZnackareDeps\Wpify\Model\Exceptions\PrimaryKeyException
+	 * @throws \PortalZnackareDeps\Wpify\Model\Exceptions\RepositoryNotInitialized
+	 * @throws \PortalZnackareDeps\Wpify\Model\Exceptions\SqlException
+	 * @throws \ReflectionException
+	 */
+	public function set_report( $request ) {
+		$id_zp   = intval( $request->get_param( 'id_zp' ) );
+		$int_adr = intval( $request->get_param( 'int_adr' ) );
+
+		// Validace vstupních parametrů
+		if ( empty( $int_adr ) || empty( $id_zp ) ) {
+			return new WP_Error(
+				'missing_params',
+				'Chybí povinné parametry int_adr nebo id_zp',
+				[ 'status' => 400 ]
+			);
+		}
+
+		// Zkusíme najít existující report
+		$existing_reports = $this->report_repository->find_by_zp_and_user( $id_zp, $int_adr );
+
+		/** @var ReportModel $report */
+		if ( ! empty( $existing_reports ) ) {
+			// Update existujícího reportu
+			$report = $existing_reports[0];
+		} else {
+			// Vytvoření nového reportu
+			$report = $this->report_repository->create();
+		}
+
+		$report->id_zp       = $id_zp;
+		$report->int_adr     = $int_adr;
+		$report->cislo_zp    = $request->get_param( 'cislo_zp' );
+		$report->je_vedouci  = boolval( $request->get_param( 'je_vedouci' ) ?? false );
+
+		// JSON serializace dat
+		$data_a = $request->get_param( 'data_a' );
+		$report->data_a = ! empty( $data_a ) ? wp_json_encode( $data_a ) : '';
+
+		$data_b = $request->get_param( 'data_b' );
+		$report->data_b = ! empty( $data_b ) ? wp_json_encode( $data_b ) : '';
+
+		$calculation = $request->get_param( 'calculation' );
+		$report->calculation = ! empty( $calculation ) ? wp_json_encode( $calculation ) : '';
+
+		$report->state = $request->get_param( 'state' ) ?? '';
+
+		if ( 'send' === $request->get_param( 'state' ) ) {
+			$report->date_send = current_time( 'timestamp' );
+		}
+
+		$response = $this->report_repository->save( $report );
 
 		return rest_ensure_response( $response );
 	}
