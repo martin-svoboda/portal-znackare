@@ -262,14 +262,9 @@ export const ProvedeniPrikazu: React.FC<ProvedeniPrikazuProps> = ({
 									<>
 										<Text size="sm" c="dimmed">Segmenty dopravy:</Text>
 										{reportData.data_a.travelSegments.length > 0 && reportData.data_a.travelSegments.map((segment, i) => (
-											<>
-												<Text size="sm">
-													{segment.outbound?.startPlace} – {segment.outbound?.endPlace}
-												</Text>
-												<Text size="sm">
-													{segment.return?.startPlace} – {segment.return?.endPlace}
-												</Text>
-											</>
+											<Text size="sm" key={i}>
+												{segment.startPlace} – {segment.endPlace}
+											</Text>
 										))}
 
 									</>

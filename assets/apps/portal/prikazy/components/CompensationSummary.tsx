@@ -53,26 +53,35 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 	}, [head]);
 
 	const workHours = useMemo(() => {
-		return formData.travelSegments.reduce((total, segment) => {
-			// Calculate outbound journey time
-			if (segment.outbound.startTime && segment.outbound.endTime) {
-				const outboundStart = new Date(`${segment.outbound.date.toDateString()} ${segment.outbound.startTime}`);
-				const outboundEnd = new Date(`${segment.outbound.date.toDateString()} ${segment.outbound.endTime}`);
-				if (outboundEnd > outboundStart) {
-					total += (outboundEnd.getTime() - outboundStart.getTime()) / (1000 * 60 * 60);
-				}
+		// Seskupit segmenty podle dne
+		const segmentsByDate = formData.travelSegments.reduce((acc, segment) => {
+			if (!segment || !segment.date) return acc;
+			
+			const dateKey = segment.date.toDateString();
+			if (!acc[dateKey]) {
+				acc[dateKey] = [];
+			}
+			acc[dateKey].push(segment);
+			return acc;
+		}, {} as Record<string, typeof formData.travelSegments>);
+		
+		// Spočítat hodiny pro každý den
+		return Object.entries(segmentsByDate).reduce((totalHours, [dateStr, segments]) => {
+			const validSegments = segments.filter(s => s.startTime && s.endTime);
+			if (validSegments.length === 0) return totalHours;
+			
+			// Najít nejdřívější čas začátku a nejpozdější čas konce
+			const startTimes = validSegments.map(s => new Date(`${dateStr} ${s.startTime}`));
+			const endTimes = validSegments.map(s => new Date(`${dateStr} ${s.endTime}`));
+			
+			const earliestStart = new Date(Math.min(...startTimes.map(d => d.getTime())));
+			const latestEnd = new Date(Math.max(...endTimes.map(d => d.getTime())));
+			
+			if (latestEnd > earliestStart) {
+				totalHours += (latestEnd.getTime() - earliestStart.getTime()) / (1000 * 60 * 60);
 			}
 			
-			// Calculate return journey time
-			if (segment.return.startTime && segment.return.endTime) {
-				const returnStart = new Date(`${segment.return.date.toDateString()} ${segment.return.startTime}`);
-				const returnEnd = new Date(`${segment.return.date.toDateString()} ${segment.return.endTime}`);
-				if (returnEnd > returnStart) {
-					total += (returnEnd.getTime() - returnStart.getTime()) / (1000 * 60 * 60);
-				}
-			}
-			
-			return total;
+			return totalHours;
 		}, 0);
 	}, [formData.travelSegments]);
 
@@ -91,34 +100,16 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 		// Výpočet dopravních nákladů
 		let transportCosts = 0;
 		formData.travelSegments.forEach(segment => {
-			// Calculate outbound journey costs
-			if (segment.outbound.transportType === "AUV" || segment.outbound.transportType === "AUV-Z") {
-				const kmRate = priceList.transport?.find((item: any) => 
-					item.type === segment.outbound.transportType
-				)?.price || 6.6; // Fallback sazba
-				transportCosts += segment.outbound.kilometers * kmRate;
-			} else if (segment.outbound.transportType === "AUV-Z-VYSSI") {
-				const kmRate = priceList.transport?.find((item: any) => 
-					item.type === "AUV-Z-VYSSI"
-				)?.price || 9.9; // Vyšší sazba
-				transportCosts += segment.outbound.kilometers * kmRate;
-			} else if (segment.outbound.transportType === "veřejná doprava") {
-				transportCosts += segment.outbound.ticketCosts;
-			}
+			// Calculate segment journey costs
+			if (!segment || !segment.transportType) return;
 			
-			// Calculate return journey costs
-			if (segment.return.transportType === "AUV" || segment.return.transportType === "AUV-Z") {
+			if (segment.transportType === "AUV" || segment.transportType === "AUV-Z") {
 				const kmRate = priceList.transport?.find((item: any) => 
-					item.type === segment.return.transportType
+					item.type === segment.transportType
 				)?.price || 6.6; // Fallback sazba
-				transportCosts += segment.return.kilometers * kmRate;
-			} else if (segment.return.transportType === "AUV-Z-VYSSI") {
-				const kmRate = priceList.transport?.find((item: any) => 
-					item.type === "AUV-Z-VYSSI"
-				)?.price || 9.9; // Vyšší sazba
-				transportCosts += segment.return.kilometers * kmRate;
-			} else if (segment.return.transportType === "veřejná doprava") {
-				transportCosts += segment.return.ticketCosts;
+				transportCosts += (segment.kilometers || 0) * kmRate;
+			} else if (segment.transportType === "veřejná doprava") {
+				transportCosts += (segment.ticketCosts || 0);
 			}
 			// Pěšky a kolo = 0 Kč
 		});
@@ -273,6 +264,9 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 					<Grid.Col span={6}>
 						<Text size="sm" c="dimmed">Celková doba práce</Text>
 						<Text fw={500}>{workHours.toFixed(1)} hodin</Text>
+						<Text size="xs" c="dimmed" mt="xs">
+							Od nejdřívějšího začátku do nejpozdějšího konce cesty
+						</Text>
 					</Grid.Col>
 					<Grid.Col span={6}>
 						<Text size="sm" c="dimmed">Hodinová sazba</Text>
@@ -303,95 +297,44 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 						</Table.Tr>
 					</Table.Thead>
 					<Table.Tbody>
-						{formData.travelSegments.map((segment, index) => (
-							<React.Fragment key={segment.id}>
-								{/* Outbound journey row */}
-								{(() => {
-									let amount = 0;
-									let unit = "";
-									let rate = 0;
-									let costs = 0;
+						{formData.travelSegments.map((segment, index) => {
+							if (!segment || !segment.transportType) return null;
+							
+							let amount = 0;
+							let unit = "";
+							let rate = 0;
+							let costs = 0;
 
-									if (segment.outbound.transportType === "AUV" || segment.outbound.transportType === "AUV-Z") {
-										amount = segment.outbound.kilometers;
-										unit = "km";
-										rate = priceList.transport?.find((item: any) => item.type === segment.outbound.transportType)?.price || 6.6;
-										costs = amount * rate;
-									} else if (segment.outbound.transportType === "AUV-Z-VYSSI") {
-										amount = segment.outbound.kilometers;
-										unit = "km";
-										rate = priceList.transport?.find((item: any) => item.type === "AUV-Z-VYSSI")?.price || 9.9;
-										costs = amount * rate;
-									} else if (segment.outbound.transportType === "veřejná doprava") {
-										costs = segment.outbound.ticketCosts;
-										unit = "Kč";
-									}
+							if (segment.transportType === "AUV" || segment.transportType === "AUV-Z") {
+								amount = segment.kilometers || 0;
+								unit = "km";
+								rate = priceList.transport?.find((item: any) => item.type === segment.transportType)?.price || 6.6;
+								costs = amount * rate;
+							} else if (segment.transportType === "veřejná doprava") {
+								costs = segment.ticketCosts || 0;
+								unit = "Kč";
+							}
 
-									return (
-										<Table.Tr>
-											<Table.Td>Segment {index + 1} - tam</Table.Td>
-											<Table.Td>
-												<Badge variant="light" size="sm" color="blue">
-													{segment.outbound.transportType}
-												</Badge>
-											</Table.Td>
-											<Table.Td>
-												{amount > 0 ? `${amount} ${unit}` : "-"}
-											</Table.Td>
-											<Table.Td>
-												{rate > 0 ? formatCurrency(rate) : "-"}
-											</Table.Td>
-											<Table.Td fw={500}>
-												{formatCurrency(costs)}
-											</Table.Td>
-										</Table.Tr>
-									);
-								})()}
-								
-								{/* Return journey row */}
-								{(() => {
-									let amount = 0;
-									let unit = "";
-									let rate = 0;
-									let costs = 0;
-
-									if (segment.return.transportType === "AUV" || segment.return.transportType === "AUV-Z") {
-										amount = segment.return.kilometers;
-										unit = "km";
-										rate = priceList.transport?.find((item: any) => item.type === segment.return.transportType)?.price || 6.6;
-										costs = amount * rate;
-									} else if (segment.return.transportType === "AUV-Z-VYSSI") {
-										amount = segment.return.kilometers;
-										unit = "km";
-										rate = priceList.transport?.find((item: any) => item.type === "AUV-Z-VYSSI")?.price || 9.9;
-										costs = amount * rate;
-									} else if (segment.return.transportType === "veřejná doprava") {
-										costs = segment.return.ticketCosts;
-										unit = "Kč";
-									}
-
-									return (
-										<Table.Tr>
-											<Table.Td>Segment {index + 1} - zpět</Table.Td>
-											<Table.Td>
-												<Badge variant="light" size="sm" color="orange">
-													{segment.return.transportType}
-												</Badge>
-											</Table.Td>
-											<Table.Td>
-												{amount > 0 ? `${amount} ${unit}` : "-"}
-											</Table.Td>
-											<Table.Td>
-												{rate > 0 ? formatCurrency(rate) : "-"}
-											</Table.Td>
-											<Table.Td fw={500}>
-												{formatCurrency(costs)}
-											</Table.Td>
-										</Table.Tr>
-									);
-								})()}
-							</React.Fragment>
-						))}
+							return (
+								<Table.Tr key={segment.id}>
+									<Table.Td>Segment {index + 1}</Table.Td>
+									<Table.Td>
+										<Badge variant="light" size="sm" color="blue">
+											{segment.transportType}
+										</Badge>
+									</Table.Td>
+									<Table.Td>
+										{amount > 0 ? `${amount} ${unit}` : "-"}
+									</Table.Td>
+									<Table.Td>
+										{rate > 0 ? formatCurrency(rate) : "-"}
+									</Table.Td>
+									<Table.Td fw={500}>
+										{formatCurrency(costs)}
+									</Table.Td>
+								</Table.Tr>
+							);
+						})}
 					</Table.Tbody>
 				</Table>
 			</Card>

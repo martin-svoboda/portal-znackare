@@ -12,23 +12,19 @@ export interface FileAttachment {
 	rotation?: number;
 }
 
-export interface Journey {
+export interface TravelSegment {
+	id: string;
+	// Základní informace o segmentu
 	date: Date;
 	startTime: string;
 	endTime: string;
 	startPlace: string;
 	endPlace: string;
-	transportType: "AUV" | "AUV-Z" | "AUV-Z-VYSSI" | "veřejná doprava" | "pěšky" | "kolo";
+	transportType: "AUV" | "AUV-Z" | "veřejná doprava" | "pěšky" | "kolo";
 	kilometers: number;
 	ticketCosts: number;
 	attachments: FileAttachment[];
 	vehicleRegistration?: string; // Pro druhého řidiče
-}
-
-export interface TravelSegment {
-	id: string;
-	outbound: Journey;
-	return: Journey;
 	memberIndex?: number; // Pro kterého člena skupiny
 }
 

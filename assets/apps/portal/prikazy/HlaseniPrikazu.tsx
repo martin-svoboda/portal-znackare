@@ -76,28 +76,15 @@ const HlaseniPrikazu = () => {
 		executionDate: new Date(),
 		travelSegments: [{
 			id: crypto.randomUUID(),
-			outbound: {
-				date: new Date(),
-				startTime: "",
-				endTime: "",
-				startPlace: "",
-				endPlace: "",
-				transportType: "AUV",
-				kilometers: 0,
-				ticketCosts: 0,
-				attachments: []
-			},
-			return: {
-				date: new Date(),
-				startTime: "",
-				endTime: "",
-				startPlace: "",
-				endPlace: "",
-				transportType: "AUV",
-				kilometers: 0,
-				ticketCosts: 0,
-				attachments: []
-			}
+			date: new Date(),
+			startTime: "",
+			endTime: "",
+			startPlace: "",
+			endPlace: "",
+			transportType: "AUV",
+			kilometers: 0,
+			ticketCosts: 0,
+			attachments: []
 		}],
 		primaryDriver: "",
 		vehicleRegistration: "",
@@ -158,19 +145,13 @@ const HlaseniPrikazu = () => {
 						Object.assign(loadedData, result.data_a);
 						// Převod dat na Date objekty
 						if (loadedData.executionDate) {
-							loadedData.executionDate = new Date(loadedData.executionDate);
+							const execDate = new Date(loadedData.executionDate);
+							loadedData.executionDate = isNaN(execDate.getTime()) ? new Date() : execDate;
 						}
 						if (loadedData.travelSegments) {
 							loadedData.travelSegments = loadedData.travelSegments.map(segment => ({
 								...segment,
-								outbound: {
-									...segment.outbound,
-									date: new Date(segment.outbound.date)
-								},
-								return: {
-									...segment.return,
-									date: new Date(segment.return.date)
-								}
+								date: segment.date ? new Date(segment.date) : new Date()
 							}));
 						}
 						if (loadedData.accommodations) {
@@ -193,9 +174,7 @@ const HlaseniPrikazu = () => {
 					}
 
 					// Načtení výpočtu (pokud existuje)
-					if (result.calculation) {
-						loadedData.calculation = result.calculation;
-					}
+					// calculation není součástí HlaseniFormData, tak ho můžeme přeskočit
 
 					// Nastavení statusu
 					if (result.state) {
@@ -205,7 +184,7 @@ const HlaseniPrikazu = () => {
 					setFormData(prev => ({...prev, ...loadedData}));
 				}
 			})
-			.catch(err => {
+			.catch(() => {
 				// Report ještě neexistuje, to je v pořádku
 				console.log('Report does not exist yet');
 			})
@@ -223,7 +202,7 @@ const HlaseniPrikazu = () => {
 			.then(result => {
 				setPriceList(result);
 			})
-			.catch(err => {
+			.catch(() => {
 				notifications.show({
 					title: "Upozornění",
 					message: "Nepodařilo se načíst ceník pro dané datum",
@@ -232,30 +211,6 @@ const HlaseniPrikazu = () => {
 			});
 	}, [formData.executionDate, reportLoaded]);
 
-	// Automatické označování částí jako dokončené
-	useEffect(() => {
-		const partACompleted = canCompletePartA;
-		if (partACompleted !== formData.partACompleted) {
-			updateFormData({ partACompleted });
-		}
-	}, [canCompletePartA, formData.partACompleted]);
-
-	// Automatické označování části B jako dokončené
-	useEffect(() => {
-		if (head?.Druh_ZP === "O") {
-			// Pro obnovu vyžadujeme TIM reporty
-			const partBCompleted = Object.keys(formData.timReports).length > 0;
-			if (partBCompleted !== formData.partBCompleted) {
-				updateFormData({ partBCompleted });
-			}
-		} else {
-			// Pro ostatní druhy vyžadujeme vyplněný komentář
-			const partBCompleted = formData.routeComment.trim().length > 0;
-			if (partBCompleted !== formData.partBCompleted) {
-				updateFormData({ partBCompleted });
-			}
-		}
-	}, [formData.timReports, formData.routeComment, formData.partBCompleted, head?.Druh_ZP]);
 
 	// Validace kroku podle typu příkazu - odstraněno, nyní všechny příkazy mají část B
 
@@ -279,13 +234,14 @@ const HlaseniPrikazu = () => {
 			// Příprava dat pro API
 			const dataA = {
 				executionDate: formData.executionDate,
-				travelSegments: formData.travelSegments,
+				travelSegments: formData.travelSegments.filter(segment => segment && segment.id),
 				primaryDriver: formData.primaryDriver,
 				vehicleRegistration: formData.vehicleRegistration,
 				higherKmRate: formData.higherKmRate,
 				accommodations: formData.accommodations,
 				additionalExpenses: formData.additionalExpenses,
-				partACompleted: formData.partACompleted
+				partACompleted: formData.partACompleted,
+				paymentRedirects: formData.paymentRedirects
 			};
 
 			const dataB = {
@@ -296,10 +252,16 @@ const HlaseniPrikazu = () => {
 			};
 
 			// Výpočet náhrad pouze při finálním odeslání
-			let calculation = null;
+			let calculation: any = null;
 			if (state === 'send' && priceList) {
 				// TODO: Implementovat výpočet náhrad
 				calculation = {
+					transportCosts: 0,
+					workCompensation: 0,
+					accommodationCosts: 0,
+					additionalExpenses: 0,
+					total: 0,
+					breakdown: [],
 					paymentRedirects: formData.paymentRedirects
 				};
 			}
@@ -353,15 +315,13 @@ const HlaseniPrikazu = () => {
 	const canCompletePartA = useMemo(() => {
 		// Kontrola povinných údajů pro dokončení části A
 		const needsDriver = formData.travelSegments.some(segment =>
-			segment.outbound.transportType === "AUV" || segment.outbound.transportType === "AUV-Z" || segment.outbound.transportType === "AUV-Z-VYSSI" ||
-			segment.return.transportType === "AUV" || segment.return.transportType === "AUV-Z" || segment.return.transportType === "AUV-Z-VYSSI"
+			segment && segment.transportType && (segment.transportType === "AUV" || segment.transportType === "AUV-Z")
 		);
 
 		const hasDriverForCar = needsDriver && (!formData.primaryDriver || !formData.vehicleRegistration);
 
 		const hasTicketsForPublicTransport = formData.travelSegments.some(segment =>
-			(segment.outbound.transportType === "veřejná doprava" && segment.outbound.attachments.length === 0) ||
-			(segment.return.transportType === "veřejná doprava" && segment.return.attachments.length === 0)
+			segment && segment.transportType === "veřejná doprava" && (!segment.attachments || segment.attachments.length === 0)
 		);
 
 		const hasDocumentsForExpenses = [
@@ -371,6 +331,31 @@ const HlaseniPrikazu = () => {
 
 		return !hasDriverForCar && !hasTicketsForPublicTransport && !hasDocumentsForExpenses;
 	}, [formData]);
+
+	// Automatické označování částí jako dokončené
+	useEffect(() => {
+		const partACompleted = canCompletePartA;
+		if (partACompleted !== formData.partACompleted) {
+			updateFormData({ partACompleted });
+		}
+	}, [canCompletePartA, formData.partACompleted]);
+
+	// Automatické označování části B jako dokončené
+	useEffect(() => {
+		if (head?.Druh_ZP === "O") {
+			// Pro obnovu vyžadujeme TIM reporty
+			const partBCompleted = Object.keys(formData.timReports).length > 0;
+			if (partBCompleted !== formData.partBCompleted) {
+				updateFormData({ partBCompleted });
+			}
+		} else {
+			// Pro ostatní druhy vyžadujeme vyplněný komentář
+			const partBCompleted = formData.routeComment.trim().length > 0;
+			if (partBCompleted !== formData.partBCompleted) {
+				updateFormData({ partBCompleted });
+			}
+		}
+	}, [formData.timReports, formData.routeComment, formData.partBCompleted, head?.Druh_ZP]);
 
 	if (loading) {
 		return (
@@ -442,7 +427,6 @@ const HlaseniPrikazu = () => {
 									head={head}
 									canEdit={true}
 									canEditOthers={canEditOthers}
-									onSave={() => saveForm(false)}
 								/>
 
 								{!canCompletePartA && (

@@ -79,16 +79,6 @@ class PortalApi extends WP_REST_Controller {
 
 		register_rest_route(
 			ApiManager::PATH,
-			'/ceniky',
-			array(
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => array( $this, 'get_ceniky' ),
-				'permission_callback' => '__return_true',
-			)
-		);
-
-		register_rest_route(
-			ApiManager::PATH,
 			'/report',
 			array(
 				'methods'             => WP_REST_Server::READABLE,
@@ -287,12 +277,6 @@ class PortalApi extends WP_REST_Controller {
 		if ( ! empty( $downloads ) ) {
 			$response = array_merge( $response, $downloads );
 		}
-
-		return rest_ensure_response( $response );
-	}
-
-	public function get_ceniky( $request ) {
-		$response       = [];
 
 		return rest_ensure_response( $response );
 	}

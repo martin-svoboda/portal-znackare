@@ -96,6 +96,16 @@ class InsysApi extends WP_REST_Controller {
 				),
 			)
 		);
+
+		register_rest_route(
+			ApiManager::PATH,
+			'/ceniky',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_ceniky' ),
+				'permission_callback' => '__return_true',
+			)
+		);
 	}
 
 	public function validate_nonce() {
@@ -168,6 +178,41 @@ class InsysApi extends WP_REST_Controller {
 		$int_adr  = $request['int_adr'];
 		$id       = $request['id'];
 		$response = $this->client->get_prikaz( $int_adr, $id );
+
+		return rest_ensure_response( $response );
+	}
+
+	public function get_ceniky( $request ) {
+		$date = $request['date'];
+
+		$response = array(
+			'jizdne'        => 6,
+			'jizdneZvysene' => 8,
+			'tarifDobaOd1'  => 0,
+			'tarifDobaDo1'  => 4,
+			'tarifStravne1' => 0,
+			'tarifNahrada1' => 0,
+			'tarifDobaOd2'  => 4,
+			'tarifDobaDo2'  => 5,
+			'tarifStravne2' => 0,
+			'tarifNahrada2' => 150,
+			'tarifDobaOd3'  => 5,
+			'tarifDobaDo3'  => 8,
+			'tarifStravne3' => 160,
+			'tarifNahrada3' => 150,
+			'tarifDobaOd4'  => 8,
+			'tarifDobaDo4'  => 12,
+			'tarifStravne4' => 160,
+			'tarifNahrada4' => 300,
+			'tarifDobaOd5'  => 12,
+			'tarifDobaDo5'  => 18,
+			'tarifStravne5' => 250,
+			'tarifNahrada5' => 300,
+			'tarifDobaOd6'  => 18,
+			'tarifDobaDo6'  => 24,
+			'tarifStravne6' => 390,
+			'tarifNahrada6' => 300,
+		);
 
 		return rest_ensure_response( $response );
 	}

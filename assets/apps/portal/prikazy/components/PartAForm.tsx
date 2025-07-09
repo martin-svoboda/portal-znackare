@@ -12,12 +12,10 @@ import {
 	Divider,
 	ActionIcon,
 	Alert,
-	Switch,
 	Grid,
 	Box,
 	Checkbox,
-	Badge,
-	Flex, ThemeIcon
+	ThemeIcon
 } from "@mantine/core";
 import {
 	IconPlus,
@@ -31,12 +29,12 @@ import {
 	IconBed,
 	IconReceipt,
 	IconMapPin,
-	IconArrowRight
+	IconArrowUp,
+	IconArrowDown
 } from "@tabler/icons-react";
-import {DateInput, DatePickerInput} from "@mantine/dates";
-import {HlaseniFormData, TravelSegment, Journey, Accommodation, AdditionalExpense} from "../types/HlaseniTypes";
+import {DatePickerInput} from "@mantine/dates";
+import {HlaseniFormData, TravelSegment, Accommodation, AdditionalExpense} from "../types/HlaseniTypes";
 import {FileUploadZone} from "./FileUploadZone";
-import {formatCurrency, formatTime} from "../../shared/formatting";
 import '@mantine/dates/styles.css';
 import 'dayjs/locale/cs';
 import dayjs from 'dayjs';
@@ -51,7 +49,6 @@ interface PartAFormProps {
 	head: any;
 	canEdit: boolean;
 	canEditOthers: boolean;
-	onSave: () => void;
 }
 
 const transportTypeOptions = [
@@ -65,11 +62,10 @@ const transportTypeOptions = [
 export const PartAForm: React.FC<PartAFormProps> = ({
 														formData,
 														updateFormData,
-														priceList,
+														priceList: _priceList,
 														head,
 														canEdit,
-														canEditOthers,
-														onSave
+														canEditOthers
 													}) => {
 
 	const teamMembers = useMemo(() => {
@@ -85,36 +81,20 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 
 	// Total work hours calculation is now moved to CompensationSummary component
 
-	const canUseHigherRate = useMemo(() => {
-		return head?.ZvysenaSazba === "1" && head?.Druh_ZP !== "O";
-	}, [head]);
 
 	const addTravelSegment = () => {
 		const lastSegment = formData.travelSegments[formData.travelSegments.length - 1];
 		const newSegment: TravelSegment = {
 			id: crypto.randomUUID(),
-			outbound: {
-				date: formData.executionDate,
-				startTime: "08:00",
-				endTime: "",
-				startPlace: lastSegment?.return?.endPlace || "",
-				endPlace: "",
-				transportType: "AUV",
-				kilometers: 0,
-				ticketCosts: 0,
-				attachments: []
-			},
-			return: {
-				date: formData.executionDate,
-				startTime: "",
-				endTime: "",
-				startPlace: "",
-				endPlace: "",
-				transportType: "AUV",
-				kilometers: 0,
-				ticketCosts: 0,
-				attachments: []
-			}
+			date: formData.executionDate,
+			startTime: "08:00",
+			endTime: "",
+			startPlace: lastSegment?.endPlace || "",
+			endPlace: "",
+			transportType: "AUV",
+			kilometers: 0,
+			ticketCosts: 0,
+			attachments: []
 		};
 
 		updateFormData({
@@ -122,37 +102,33 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 		});
 	};
 
-	const updateSegment = (segmentId: string, updates: Partial<TravelSegment>) => {
-		updateFormData({
-			travelSegments: formData.travelSegments.map(segment =>
-				segment.id === segmentId ? {...segment, ...updates} : segment
-			)
-		});
-	};
 
-	const updateJourney = (segmentId: string, journeyType: 'outbound' | 'return', updates: Partial<Journey>) => {
+	const updateSegmentField = (segmentId: string, updates: Partial<TravelSegment>) => {
 		updateFormData({
 			travelSegments: formData.travelSegments.map(segment =>
 				segment.id === segmentId
-					? {...segment, [journeyType]: {...segment[journeyType], ...updates}}
+					? {...segment, ...updates}
 					: segment
 			)
 		});
 	};
 
-	const copyAsReturnJourney = (segmentId: string) => {
+	const duplicateSegment = (segmentId: string) => {
 		const segment = formData.travelSegments.find(s => s.id === segmentId);
 		if (!segment) return;
 
-		const returnJourney: Journey = {
-			...segment.outbound,
-			startPlace: segment.outbound.endPlace,
-			endPlace: segment.outbound.startPlace,
+		const newSegment: TravelSegment = {
+			...segment,
+			id: crypto.randomUUID(),
+			startPlace: segment.endPlace,
+			endPlace: segment.startPlace,
 			startTime: "",
 			endTime: ""
 		};
 
-		updateJourney(segmentId, 'return', returnJourney);
+		updateFormData({
+			travelSegments: [...formData.travelSegments, newSegment]
+		});
 	};
 
 	const removeSegment = (segmentId: string) => {
@@ -161,10 +137,28 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 		});
 	};
 
-	const copySegmentsToTeam = () => {
-		// Implementace kopírování segmentů na celou skupinu
-		// Toto by mělo vytvořit kopie segmentů pro ostatní členy týmu
+	const moveSegmentUp = (segmentId: string) => {
+		const segments = [...formData.travelSegments];
+		const currentIndex = segments.findIndex(s => s.id === segmentId);
+
+		if (currentIndex > 0) {
+			// Swap with previous segment
+			[segments[currentIndex - 1], segments[currentIndex]] = [segments[currentIndex], segments[currentIndex - 1]];
+			updateFormData({travelSegments: segments});
+		}
 	};
+
+	const moveSegmentDown = (segmentId: string) => {
+		const segments = [...formData.travelSegments];
+		const currentIndex = segments.findIndex(s => s.id === segmentId);
+
+		if (currentIndex < segments.length - 1) {
+			// Swap with next segment
+			[segments[currentIndex], segments[currentIndex + 1]] = [segments[currentIndex + 1], segments[currentIndex]];
+			updateFormData({travelSegments: segments});
+		}
+	};
+
 
 	const addAccommodation = () => {
 		const newAccommodation: Accommodation = {
@@ -256,8 +250,7 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 								// Aktualizuj datum u všech segmentů
 								const updatedSegments = formData.travelSegments.map(segment => ({
 									...segment,
-									outbound: {...segment.outbound, date},
-									return: {...segment.return, date}
+									date
 								}));
 								updateFormData({travelSegments: updatedSegments});
 							}
@@ -294,191 +287,93 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 
 				<Stack gap="md">
 					{formData.travelSegments.map((segment, index) => {
-						const OutboundIcon = getTransportIcon(segment.outbound.transportType);
-						const ReturnIcon = getTransportIcon(segment.return.transportType);
+						if (!segment) return null;
+						const TransportIcon = getTransportIcon(segment.transportType || "AUV");
 
 						return (
 							<>
-								{index > 0 && (<Divider my="md"/>)}
-								<Box key={segment.id} ml="md" pl="lg" style={{borderLeft: "2px solid #4dabf7"}} pos="relative">
-									{formData.travelSegments.length > 1 && (
-										<ActionIcon
-											color="red"
-											variant="light"
-											onClick={() => removeSegment(segment.id)}
-											disabled={formData.partACompleted}
-											pos="absolute"
-											top="0"
-											right="0"
-											style={{zIndex: 10}}
-										>
-											<IconTrash size={16}/>
-										</ActionIcon>
-									)}
-
-									{/* Cesta tam */}
-									<Box mb="md">
-										<Group mb="md" pos="relative" wrap="wrap" align="start">
-											<ThemeIcon radius="xl" size="lg" pos="absolute" left="-38px" top="-5px">
-												<OutboundIcon/>
-											</ThemeIcon>
-											<Box w="100px" pl="sm">
-												<Text fw={500}>Začátek</Text>
-											</Box>
-											<DatePickerInput
-												locale="cs"
-												value={segment.outbound.date}
-												onChange={(date) => date && updateJourney(segment.id, 'outbound', {date})}
+								{index > 0 && (<Divider my="sm"/>)}
+								<Box key={segment.id} ml="md" pl="lg" style={{borderLeft: "2px solid #4dabf7"}}
+									 pos="relative">
+									<Group
+										pos="absolute"
+										top="0"
+										right="0"
+										style={{zIndex: 10}}
+										gap="xs"
+									>
+										{/* Přesunout nahoru - pouze pokud není první */}
+										{index > 0 && (
+											<ActionIcon
+												variant="light"
+												color="blue"
+												onClick={() => moveSegmentUp(segment.id)}
 												disabled={formData.partACompleted}
-												valueFormat="D. M. YYYY"
-											/>
-										</Group>
-
-										<Group mb="md" pos="relative" wrap="wrap" align="start">
-											<ThemeIcon pos="absolute" left="-32px" size="sm">
-												<IconMapPin size={20}/>
-											</ThemeIcon>
-											<Box w="100px">
-												<Text>Odjezd z</Text>
-											</Box>
-											<Grid flex={{base: "auto", sm: "1"}}>
-												<Grid.Col span={{base: 12, sm: 7,}}>
-													<TextInput
-														placeholder="Místo"
-														value={segment.outbound.startPlace}
-														onChange={(e) => updateJourney(segment.id, 'outbound', {startPlace: e.target.value})}
-														disabled={formData.partACompleted}
-													/>
-												</Grid.Col>
-												<Grid.Col span={{base: 12, sm: 5,}}>
-													<Group>
-														<Text>V</Text>
-														<TextInput
-															flex="1"
-															placeholder="HH:MM"
-															value={segment.outbound.startTime}
-															onChange={(e) => updateJourney(segment.id, 'outbound', {startTime: e.target.value})}
-															disabled={formData.partACompleted}
-															pattern="[0-9]{2}:[0-9]{2}"
-														/>
-													</Group>
-												</Grid.Col>
-											</Grid>
-										</Group>
-
-										<Group mb="md" pos="relative" wrap="wrap" align="start">
-											<ThemeIcon pos="absolute" left="-32px" size="sm">
-												<IconMapPin size={20}/>
-											</ThemeIcon>
-											<Box w="100px">
-												<Text>Příjezd do</Text>
-											</Box>
-											<Grid flex={{base: "auto", sm: "1"}}>
-												<Grid.Col span={{base: 12, sm: 7,}}>
-													<TextInput
-														placeholder="Místo"
-														value={segment.outbound.endPlace}
-														onChange={(e) => updateJourney(segment.id, 'outbound', {endPlace: e.target.value})}
-														disabled={formData.partACompleted}
-													/>
-												</Grid.Col>
-												<Grid.Col span={{base: 12, sm: 5,}}>
-													<Group>
-														<Text>V</Text>
-														<TextInput
-															flex="1"
-															placeholder="HH:MM"
-															value={segment.outbound.endTime}
-															onChange={(e) => updateJourney(segment.id, 'outbound', {endTime: e.target.value})}
-															disabled={formData.partACompleted}
-															pattern="[0-9]{2}:[0-9]{2}"
-														/>
-													</Group>
-												</Grid.Col>
-											</Grid>
-										</Group>
-
-										<Grid my="sm">
-											<Grid.Col span={{base: 12, sm: 6,}}>
-												<Select
-													label="Typ dopravy"
-													data={[...transportTypeOptions.map(opt => ({
-														value: opt.value,
-														label: opt.label
-													})), ...(canUseHigherRate ? [{
-														value: "AUV-Z-VYSSI",
-														label: "AUV-Z (Vyšší sazba)"
-													}] : [])]}
-													value={segment.outbound.transportType}
-													onChange={(value) => value && updateJourney(segment.id, 'outbound', {transportType: value as any})}
-													disabled={formData.partACompleted}
-												/>
-											</Grid.Col>
-											<Grid.Col span={{base: 12, sm: 6,}}>
-												{(segment.outbound.transportType === "AUV" || segment.outbound.transportType === "AUV-Z" || segment.outbound.transportType === "AUV-Z-VYSSI") ? (
-													<NumberInput
-														label="Kilometry"
-														value={segment.outbound.kilometers}
-														onChange={(value) => updateJourney(segment.id, 'outbound', {kilometers: Number(value) || 0})}
-														min={0}
-														step={0.1}
-														decimalScale={1}
-														disabled={formData.partACompleted}
-													/>
-												) : (
-													<NumberInput
-														label="Náklady na jízdenky (Kč)"
-														value={segment.outbound.ticketCosts}
-														onChange={(value) => updateJourney(segment.id, 'outbound', {ticketCosts: Number(value) || 0})}
-														min={0}
-														step={0.01}
-														decimalScale={2}
-														disabled={formData.partACompleted}
-													/>
-												)}
-											</Grid.Col>
-										</Grid>
-
-										{segment.outbound.transportType === "veřejná doprava" && (
-											<Box mt="sm">
-												<Text size="sm" mb="xs">Jízdenky a doklady</Text>
-												<FileUploadZone
-													files={segment.outbound.attachments}
-													onFilesChange={(files) => updateJourney(segment.id, 'outbound', {attachments: files})}
-													maxFiles={10}
-													accept="image/jpeg,image/png,image/heic,application/pdf"
-													disabled={formData.partACompleted}
-												/>
-											</Box>
+												title="Přesunout nahoru"
+											>
+												<IconArrowUp size={14}/>
+											</ActionIcon>
 										)}
 
-										<Button
-											variant="outline"
-											size="compact-sm"
-											leftSection={<IconCopy size={14}/>}
-											onClick={() => copyAsReturnJourney(segment.id)}
-											disabled={formData.partACompleted}
-										>
-											Kopírovat jako zpáteční cestu
-										</Button>
-									</Box>
+										{/* Přesunout dolů - pouze pokud není poslední */}
+										{index < formData.travelSegments.length - 1 && (
+											<ActionIcon
+												variant="light"
+												color="blue"
+												onClick={() => moveSegmentDown(segment.id)}
+												disabled={formData.partACompleted}
+												title="Přesunout dolů"
+											>
+												<IconArrowDown size={14}/>
+											</ActionIcon>
+										)}
 
-									{/* Cesta zpět */}
+										{/* Duplikovat segment */}
+										<ActionIcon
+											variant="light"
+											color="green"
+											onClick={() => duplicateSegment(segment.id)}
+											disabled={formData.partACompleted}
+											title="Duplikovat cestu"
+										>
+											<IconCopy size={14}/>
+										</ActionIcon>
+										{formData.travelSegments.length > 1 && (
+											<ActionIcon
+												color="red"
+												variant="light"
+												onClick={() => removeSegment(segment.id)}
+												disabled={formData.partACompleted}
+												title="Smazat cestu"
+											>
+												<IconTrash size={16}/>
+											</ActionIcon>
+										)}
+									</Group>
+
+
+									{/* Segment cesty */}
 									<Box mb="md">
 										<Group mb="md" pos="relative" wrap="wrap" align="start">
 											<ThemeIcon radius="xl" size="lg" pos="absolute" left="-38px" top="-5px">
-												<ReturnIcon/>
+												<TransportIcon/>
 											</ThemeIcon>
 											<Box w="100px" pl="sm">
-												<Text fw={500}>Ukončení</Text>
+												<Text fw={500}>Cesta {index + 1}</Text>
 											</Box>
-											<DatePickerInput
-												locale="cs"
-												value={segment.return.date}
-												onChange={(date) => date && updateJourney(segment.id, 'return', {date})}
-												disabled={formData.partACompleted}
-												valueFormat="D. M. YYYY"
-											/>
+											<Grid w={{base: "100%", xs: "auto"}} flex={{base: "auto", xs: "1"}}>
+												<Grid.Col span={{base: 12, xs: 7,}}>
+													<DatePickerInput
+														locale="cs"
+														value={segment.date || formData.executionDate}
+														onChange={(date) => date && updateSegmentField(segment.id, {date})}
+														disabled={formData.partACompleted}
+														valueFormat="D. M. YYYY"
+													/>
+												</Grid.Col>
+												<Grid.Col span={{base: 12, xs: 5,}}>
+												</Grid.Col>
+											</Grid>
 										</Group>
 
 										<Group mb="md" pos="relative" wrap="wrap" align="start">
@@ -492,8 +387,8 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 												<Grid.Col span={{base: 12, sm: 7,}}>
 													<TextInput
 														placeholder="Místo"
-														value={segment.return.startPlace}
-														onChange={(e) => updateJourney(segment.id, 'return', {startPlace: e.target.value})}
+														value={segment.startPlace || ""}
+														onChange={(e) => updateSegmentField(segment.id, {startPlace: e.target.value})}
 														disabled={formData.partACompleted}
 													/>
 												</Grid.Col>
@@ -503,8 +398,8 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 														<TextInput
 															flex="1"
 															placeholder="HH:MM"
-															value={segment.return.startTime}
-															onChange={(e) => updateJourney(segment.id, 'return', {startTime: e.target.value})}
+															value={segment.startTime || ""}
+															onChange={(e) => updateSegmentField(segment.id, {startTime: e.target.value})}
 															disabled={formData.partACompleted}
 															pattern="[0-9]{2}:[0-9]{2}"
 														/>
@@ -524,8 +419,8 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 												<Grid.Col span={{base: 12, sm: 7,}}>
 													<TextInput
 														placeholder="Místo"
-														value={segment.return.endPlace}
-														onChange={(e) => updateJourney(segment.id, 'return', {endPlace: e.target.value})}
+														value={segment.endPlace || ""}
+														onChange={(e) => updateSegmentField(segment.id, {endPlace: e.target.value})}
 														disabled={formData.partACompleted}
 													/>
 												</Grid.Col>
@@ -535,8 +430,8 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 														<TextInput
 															flex="1"
 															placeholder="HH:MM"
-															value={segment.return.endTime}
-															onChange={(e) => updateJourney(segment.id, 'return', {endTime: e.target.value})}
+															value={segment.endTime || ""}
+															onChange={(e) => updateSegmentField(segment.id, {endTime: e.target.value})}
 															disabled={formData.partACompleted}
 															pattern="[0-9]{2}:[0-9]{2}"
 														/>
@@ -549,24 +444,21 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 											<Grid.Col span={{base: 12, sm: 6,}}>
 												<Select
 													label="Typ dopravy"
-													data={[...transportTypeOptions.map(opt => ({
+													data={transportTypeOptions.map(opt => ({
 														value: opt.value,
 														label: opt.label
-													})), ...(canUseHigherRate ? [{
-														value: "AUV-Z-VYSSI",
-														label: "AUV-Z (Vyšší sazba)"
-													}] : [])]}
-													value={segment.return.transportType}
-													onChange={(value) => value && updateJourney(segment.id, 'return', {transportType: value as any})}
+													}))}
+													value={segment.transportType || "AUV"}
+													onChange={(value) => value && updateSegmentField(segment.id, {transportType: value as any})}
 													disabled={formData.partACompleted}
 												/>
 											</Grid.Col>
 											<Grid.Col span={{base: 12, sm: 6,}}>
-												{(segment.return.transportType === "AUV" || segment.return.transportType === "AUV-Z" || segment.return.transportType === "AUV-Z-VYSSI") ? (
+												{((segment.transportType || "AUV") === "AUV" || (segment.transportType || "") === "AUV-Z") ? (
 													<NumberInput
 														label="Kilometry"
-														value={segment.return.kilometers}
-														onChange={(value) => updateJourney(segment.id, 'return', {kilometers: Number(value) || 0})}
+														value={segment.kilometers || 0}
+														onChange={(value) => updateSegmentField(segment.id, {kilometers: Number(value) || 0})}
 														min={0}
 														step={0.1}
 														decimalScale={1}
@@ -575,8 +467,8 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 												) : (
 													<NumberInput
 														label="Náklady na jízdenky (Kč)"
-														value={segment.return.ticketCosts}
-														onChange={(value) => updateJourney(segment.id, 'return', {ticketCosts: Number(value) || 0})}
+														value={segment.ticketCosts || 0}
+														onChange={(value) => updateSegmentField(segment.id, {ticketCosts: Number(value) || 0})}
 														min={0}
 														step={0.01}
 														decimalScale={2}
@@ -586,12 +478,12 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 											</Grid.Col>
 										</Grid>
 
-										{segment.return.transportType === "veřejná doprava" && (
+										{(segment.transportType || "") === "veřejná doprava" && (
 											<Box mt="sm">
 												<Text size="sm" mb="xs">Jízdenky a doklady</Text>
 												<FileUploadZone
-													files={segment.return.attachments}
-													onFilesChange={(files) => updateJourney(segment.id, 'return', {attachments: files})}
+													files={segment.attachments || []}
+													onFilesChange={(files) => updateSegmentField(segment.id, {attachments: files})}
 													maxFiles={10}
 													accept="image/jpeg,image/png,image/heic,application/pdf"
 													disabled={formData.partACompleted}
@@ -607,9 +499,8 @@ export const PartAForm: React.FC<PartAFormProps> = ({
 			</Card>
 
 			{/* Nastavení řidiče */}
-			{formData.travelSegments.some(s =>
-				s.outbound.transportType === "AUV" || s.outbound.transportType === "AUV-Z" || s.outbound.transportType === "AUV-Z-VYSSI" ||
-				s.return.transportType === "AUV" || s.return.transportType === "AUV-Z" || s.return.transportType === "AUV-Z-VYSSI"
+			{formData.travelSegments && formData.travelSegments.length > 0 && formData.travelSegments.some(s =>
+				s && s.transportType && (s.transportType === "AUV" || s.transportType === "AUV-Z")
 			) && (
 				<Card shadow="sm" padding="md">
 					<Title order={4} mb="md">Nastavení řidiče</Title>
