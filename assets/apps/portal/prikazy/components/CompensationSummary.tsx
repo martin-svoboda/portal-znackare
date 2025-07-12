@@ -11,7 +11,6 @@ import {
 	Alert,
 	Box,
 	Grid,
-	Paper,
 	NumberFormatter
 } from "@mantine/core";
 import {
@@ -23,15 +22,17 @@ import {
 	IconArrowRight,
 	IconInfoCircle
 } from "@tabler/icons-react";
-import {HlaseniFormData, CompensationCalculation} from "../types/HlaseniTypes";
+import {HlaseniFormData, CompensationCalculation, PriceList} from "../types/HlaseniTypes";import {calculateCompensation, calculateWorkHours, calculateCompensationForAllMembers} from "../utils/compensationCalculator";
 import {formatCurrency} from "../../shared/formatting";
 
 interface CompensationSummaryProps {
 	formData: HlaseniFormData;
-	priceList: any;
+	priceList: PriceList | null;
 	head: any;
 	totalLength?: number | null;
 	compact?: boolean;
+	currentUser?: any; // Aktuální přihlášený uživatel
+	isLeader?: boolean; // Zda je aktuální uživatel vedoucí
 }
 
 export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
@@ -39,7 +40,9 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 	priceList,
 	head,
 	totalLength,
-	compact = false
+	compact = false,
+	currentUser,
+	isLeader = false
 }) => {
 	const teamMembers = useMemo(() => {
 		if (!head) return [];
@@ -47,147 +50,59 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 			.map(i => ({
 				index: i,
 				name: head[`Znackar${i}`],
+				int_adr: head[`INT_ADR_${i}`],
 				isLeader: head[`Je_Vedouci${i}`] === "1"
 			}))
 			.filter(member => member.name?.trim());
 	}, [head]);
 
+	// Použití nového kálkulátoru pracovních hodin
 	const workHours = useMemo(() => {
-		// Seskupit segmenty podle dne
-		const segmentsByDate = formData.travelSegments.reduce((acc, segment) => {
-			if (!segment || !segment.date) return acc;
-			
-			const dateKey = segment.date.toDateString();
-			if (!acc[dateKey]) {
-				acc[dateKey] = [];
-			}
-			acc[dateKey].push(segment);
-			return acc;
-		}, {} as Record<string, typeof formData.travelSegments>);
-		
-		// Spočítat hodiny pro každý den
-		return Object.entries(segmentsByDate).reduce((totalHours, [dateStr, segments]) => {
-			const validSegments = segments.filter(s => s.startTime && s.endTime);
-			if (validSegments.length === 0) return totalHours;
-			
-			// Najít nejdřívější čas začátku a nejpozdější čas konce
-			const startTimes = validSegments.map(s => new Date(`${dateStr} ${s.startTime}`));
-			const endTimes = validSegments.map(s => new Date(`${dateStr} ${s.endTime}`));
-			
-			const earliestStart = new Date(Math.min(...startTimes.map(d => d.getTime())));
-			const latestEnd = new Date(Math.max(...endTimes.map(d => d.getTime())));
-			
-			if (latestEnd > earliestStart) {
-				totalHours += (latestEnd.getTime() - earliestStart.getTime()) / (1000 * 60 * 60);
-			}
-			
-			return totalHours;
-		}, 0);
-	}, [formData.travelSegments]);
+		return calculateWorkHours(formData);
+	}, [formData]);
 
-	const compensation = useMemo<CompensationCalculation>(() => {
-		if (!priceList) {
-			return {
-				transportCosts: 0,
-				workCompensation: 0,
-				accommodationCosts: 0,
-				additionalExpenses: 0,
-				total: 0,
-				breakdown: []
-			};
+	// Výpočet kompenzací - buď pro aktuálního uživatele nebo pro všechny členy
+	const compensations = useMemo(() => {
+		if (!priceList || !currentUser) {
+			return {};
 		}
 
-		// Výpočet dopravních nákladů
-		let transportCosts = 0;
-		formData.travelSegments.forEach(segment => {
-			// Calculate segment journey costs
-			if (!segment || !segment.transportType) return;
-			
-			if (segment.transportType === "AUV" || segment.transportType === "AUV-Z") {
-				const kmRate = priceList.transport?.find((item: any) => 
-					item.type === segment.transportType
-				)?.price || 6.6; // Fallback sazba
-				transportCosts += (segment.kilometers || 0) * kmRate;
-			} else if (segment.transportType === "veřejná doprava") {
-				transportCosts += (segment.ticketCosts || 0);
-			}
-			// Pěšky a kolo = 0 Kč
-		});
+		if (isLeader) {
+			// Vedoucí vidí všechny členy
+			return calculateCompensationForAllMembers(
+				formData,
+				priceList,
+				teamMembers,
+				formData.primaryDriver,
+				formData.higherKmRate
+			);
+		} else {
+			// Běžný člen vidí pouze sebe
+			const isDriver = formData.primaryDriver === currentUser.INT_ADR;
+			const userCompensation = calculateCompensation(
+				formData,
+				priceList,
+				isDriver,
+				formData.higherKmRate,
+				currentUser.INT_ADR
+			);
+			return { [currentUser.INT_ADR]: userCompensation };
+		}
+	}, [formData, priceList, currentUser, isLeader, teamMembers]);
 
-		// Výpočet kompenzace za práci
-		const hourlyRate = priceList.work?.find((item: any) => 
-			item.type === "hourly_rate"
-		)?.price || 120; // Fallback sazba za hodinu
-		const workCompensation = workHours * hourlyRate;
+	// Pro zpětnou kompatibilitu - hlavní kompenzace aktuálního uživatele
+	const compensation = compensations[currentUser?.INT_ADR] || {
+		transportCosts: 0,
+		mealAllowance: 0,
+		workAllowance: 0,
+		accommodationCosts: 0,
+		additionalExpenses: 0,
+		total: 0,
+		workHours: 0,
+		appliedTariff: null,
+		isDriver: false
+	};
 
-		// Náklady na ubytování
-		const accommodationCosts = formData.accommodations.reduce(
-			(sum, acc) => sum + acc.amount, 0
-		);
-
-		// Vedlejší výdaje
-		const additionalExpenses = formData.additionalExpenses.reduce(
-			(sum, exp) => sum + exp.amount, 0
-		);
-
-		const total = transportCosts + workCompensation + accommodationCosts + additionalExpenses;
-
-		// Rozdělení nákladů podle členů
-		const breakdown = teamMembers.map(member => {
-			// Pro demo účely rozdělíme náklady rovnoměrně
-			// V produkčním prostředí by to bylo podle skutečných aktivit každého člena
-			const memberTransportCosts = transportCosts / teamMembers.length;
-			const memberWorkCompensation = workCompensation / teamMembers.length;
-			
-			// Ubytování a vedlejší výdaje podle toho, kdo je uhradil
-			const memberAccommodationCosts = formData.accommodations
-				.filter(acc => acc.paidByMember === member.index)
-				.reduce((sum, acc) => sum + acc.amount, 0);
-			
-			const memberAdditionalExpenses = formData.additionalExpenses
-				.filter(exp => exp.paidByMember === member.index)
-				.reduce((sum, exp) => sum + exp.amount, 0);
-
-			const memberTotal = memberTransportCosts + memberWorkCompensation + 
-				memberAccommodationCosts + memberAdditionalExpenses;
-
-			return {
-				member: member.index,
-				name: member.name,
-				transportCosts: memberTransportCosts,
-				workCompensation: memberWorkCompensation,
-				accommodationCosts: memberAccommodationCosts,
-				additionalExpenses: memberAdditionalExpenses,
-				total: memberTotal,
-				redirectedTo: formData.paymentRedirects[member.index]
-			};
-		});
-
-		return {
-			transportCosts,
-			workCompensation,
-			accommodationCosts,
-			additionalExpenses,
-			total,
-			breakdown
-		};
-	}, [formData, priceList, workHours, teamMembers]);
-
-	const finalPayments = useMemo(() => {
-		// Výpočet finálních výplat po přesměrování
-		const payments: Record<number, number> = {};
-		
-		compensation.breakdown.forEach(member => {
-			const targetMember = member.redirectedTo || member.member;
-			payments[targetMember] = (payments[targetMember] || 0) + member.total;
-		});
-
-		return Object.entries(payments).map(([memberIndex, amount]) => ({
-			memberIndex: parseInt(memberIndex),
-			memberName: teamMembers.find(m => m.index === parseInt(memberIndex))?.name || '',
-			amount
-		}));
-	}, [compensation.breakdown, teamMembers]);
 
 	if (!priceList) {
 		return (
@@ -197,7 +112,7 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 		);
 	}
 
-	// Compact mode - pouze základní souhrn
+	// Compact mode - pouze základní souhrn s detaily
 	if (compact) {
 		return (
 			<Stack gap="sm">
@@ -205,26 +120,105 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 					<Text size="sm" fw={500}>Práce celkem</Text>
 					<Text size="sm">{workHours.toFixed(1)} h</Text>
 				</Group>
-				<Group justify="space-between">
-					<Text size="sm" fw={500}>Dopravní náklady</Text>
-					<Text size="sm">{formatCurrency(compensation.transportCosts)}</Text>
-				</Group>
-				<Group justify="space-between">
-					<Text size="sm" fw={500}>Náhrada práce</Text>
-					<Text size="sm">{formatCurrency(compensation.workCompensation)}</Text>
-				</Group>
+
+				<Stack gap="0">
+					<Group justify="space-between">
+						<Text size="sm" fw={500}>
+							Jízdné
+							{priceList && compensation.isDriver && (
+								<Text span size="xs" c="dimmed" ml="xs">
+									({formData.higherKmRate ? priceList.jizdneZvysene : priceList.jizdne} Kč/km)
+								</Text>
+							)}
+						</Text>
+						<Text size="sm">{formatCurrency(compensation.transportCosts)}</Text>
+					</Group>
+					{/* Detaily dopravních nákladů */}
+					{formData.travelSegments.map((segment, index) => {
+						if (!segment || !segment.transportType) return null;
+
+						let detail = "";
+						if (segment.transportType === "AUV" || segment.transportType === "AUV-Z") {
+							if (compensation.isDriver && segment.kilometers > 0) {
+								detail = `${segment.startPlace} - ${segment.endPlace}: ${segment.kilometers} km`;
+							} else if (!compensation.isDriver) {
+								detail = `${segment.startPlace} - ${segment.endPlace}: Nejste řidič`;
+							}
+						} else if (segment.transportType === "veřejná doprava" && segment.ticketCosts > 0) {
+							detail = `${segment.startPlace} - ${segment.endPlace}: Jízdenky ${formatCurrency(segment.ticketCosts)}`;
+						}
+
+						if (detail) {
+							return (
+								<Text key={segment.id} size="xs" c="dimmed" ml="md">
+									{detail}
+								</Text>
+							);
+						}
+						return null;
+					})}
+				</Stack>
+
+				<Stack gap="0">
+					<Group justify="space-between">
+						<Text size="sm" fw={500}>Stravné</Text>
+						<Text size="sm">{formatCurrency(compensation.mealAllowance)}</Text>
+					</Group>
+					{compensation.appliedTariff && (
+						<Text size="xs" c="dimmed" ml="md">
+							Tarif za {compensation.appliedTariff.dobaOd}-{compensation.appliedTariff.dobaDo}h práce
+						</Text>
+					)}
+				</Stack>
+
+				<Stack gap="0">
+					<Group justify="space-between">
+						<Text size="sm" fw={500}>Náhrada za práci</Text>
+						<Text size="sm">{formatCurrency(compensation.workAllowance)}</Text>
+					</Group>
+					{compensation.appliedTariff && (
+						<Text size="xs" c="dimmed" ml="md">
+							Tarif za {compensation.appliedTariff.dobaOd}-{compensation.appliedTariff.dobaDo}h práce
+						</Text>
+					)}
+				</Stack>
+
 				{compensation.accommodationCosts > 0 && (
-					<Group justify="space-between">
-						<Text size="sm" fw={500}>Ubytování</Text>
-						<Text size="sm">{formatCurrency(compensation.accommodationCosts)}</Text>
-					</Group>
+					<Stack gap="0">
+						<Group justify="space-between">
+							<Text size="sm" fw={500}>Ubytování</Text>
+							<Text size="sm">{formatCurrency(compensation.accommodationCosts)}</Text>
+						</Group>
+						{/* Detaily ubytování - pouze ty co uhradil aktuální uživatel */}
+						{formData.accommodations
+							.filter(acc => currentUser && acc.paidByMember === currentUser.INT_ADR)
+							.map(acc => (
+								<Text key={acc.id} size="xs" c="dimmed" ml="md">
+									{acc.facility}, {acc.place}: {formatCurrency(acc.amount)}
+								</Text>
+							))
+						}
+					</Stack>
 				)}
+
 				{compensation.additionalExpenses > 0 && (
-					<Group justify="space-between">
-						<Text size="sm" fw={500}>Ostatní výdaje</Text>
-						<Text size="sm">{formatCurrency(compensation.additionalExpenses)}</Text>
-					</Group>
+					<Stack gap="0">
+						<Group justify="space-between">
+							<Text size="sm" fw={500}>Ostatní výdaje</Text>
+							<Text size="sm">{formatCurrency(compensation.additionalExpenses)}</Text>
+						</Group>
+						{/* Detaily vedlejších výdajů - pouze ty co uhradil aktuální uživatel */}
+						{formData.additionalExpenses
+							.filter(exp => currentUser && exp.paidByMember === currentUser.INT_ADR)
+							.map(exp => (
+								<Text key={exp.id} size="xs" c="dimmed" ml="md">
+									{exp.description}: {formatCurrency(exp.amount)}
+								</Text>
+							))
+						}
+					</Stack>
 				)}
+
 				<Divider />
 				<Group justify="space-between">
 					<Text fw={600}>Celkem k vyplacení</Text>
@@ -232,18 +226,7 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 						{formatCurrency(compensation.total)}
 					</Text>
 				</Group>
-				
-				{finalPayments.length > 1 && (
-					<>
-						<Text size="xs" c="dimmed" mt="sm">Rozdělení plateb:</Text>
-						{finalPayments.map(payment => (
-							<Group key={payment.memberIndex} justify="space-between">
-								<Text size="xs">{payment.memberName}</Text>
-								<Text size="xs">{formatCurrency(payment.amount)}</Text>
-							</Group>
-						))}
-					</>
-				)}
+
 			</Stack>
 		);
 	}
@@ -259,7 +242,7 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 						{workHours.toFixed(1)} hodin
 					</Badge>
 				</Group>
-				
+
 				<Grid>
 					<Grid.Col span={6}>
 						<Text size="sm" c="dimmed">Celková doba práce</Text>
@@ -269,11 +252,15 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 						</Text>
 					</Grid.Col>
 					<Grid.Col span={6}>
-						<Text size="sm" c="dimmed">Hodinová sazba</Text>
-						<Text fw={500}>{formatCurrency(priceList.work?.find((item: any) => item.type === "hourly_rate")?.price || 120)}</Text>
+						<Text size="sm" c="dimmed">Použitý tarif</Text>
+						<Text fw={500}>
+							{compensation.appliedTariff
+								? `${compensation.appliedTariff.dobaOd}-${compensation.appliedTariff.dobaDo}h`
+								: "Není stanoven"}
+						</Text>
 					</Grid.Col>
 				</Grid>
-				
+
 				{totalLength && (
 					<Box mt="md">
 						<Text size="sm" c="dimmed">Délka úseku k obnově</Text>
@@ -282,10 +269,46 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 				)}
 			</Card>
 
+			{/* Pokud je vedoucí, zobraz výpočty pro všechny členy */}
+			{isLeader && Object.keys(compensations).length > 1 && (
+				<Card shadow="sm" padding="md">
+					<Title order={4} mb="md">Souhrn náhrad podle členů</Title>
+					<Stack gap="md">
+						{teamMembers.map(member => {
+							const memberCompensation = compensations[member.int_adr];
+							if (!memberCompensation) return null;
+
+							return (
+								<Box key={member.int_adr} p="sm" style={{border: "1px solid #e9ecef", borderRadius: "4px"}}>
+									<Group justify="space-between" mb="xs">
+										<Text fw={500}>{member.name}</Text>
+										<Text fw={600} c="blue">{formatCurrency(memberCompensation.total)}</Text>
+									</Group>
+									<Grid gutter="xs">
+										<Grid.Col span={6}>
+											<Text size="xs" c="dimmed">Doprava: {formatCurrency(memberCompensation.transportCosts)}</Text>
+										</Grid.Col>
+										<Grid.Col span={6}>
+											<Text size="xs" c="dimmed">Stravné: {formatCurrency(memberCompensation.mealAllowance)}</Text>
+										</Grid.Col>
+										<Grid.Col span={6}>
+											<Text size="xs" c="dimmed">Práce: {formatCurrency(memberCompensation.workAllowance)}</Text>
+										</Grid.Col>
+										<Grid.Col span={6}>
+											<Text size="xs" c="dimmed">Ostatní: {formatCurrency(memberCompensation.accommodationCosts + memberCompensation.additionalExpenses)}</Text>
+										</Grid.Col>
+									</Grid>
+								</Box>
+							);
+						})}
+					</Stack>
+				</Card>
+			)}
+
 			{/* Dopravní náklady */}
 			<Card shadow="sm" padding="md">
 				<Title order={4} mb="md">Dopravní náklady</Title>
-				
+
 				<Table>
 					<Table.Thead>
 						<Table.Tr>
@@ -299,7 +322,7 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 					<Table.Tbody>
 						{formData.travelSegments.map((segment, index) => {
 							if (!segment || !segment.transportType) return null;
-							
+
 							let amount = 0;
 							let unit = "";
 							let rate = 0;
@@ -308,8 +331,8 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 							if (segment.transportType === "AUV" || segment.transportType === "AUV-Z") {
 								amount = segment.kilometers || 0;
 								unit = "km";
-								rate = priceList.transport?.find((item: any) => item.type === segment.transportType)?.price || 6.6;
-								costs = amount * rate;
+								rate = formData.higherKmRate ? priceList.jizdneZvysene : priceList.jizdne;
+								costs = compensation.isDriver ? amount * rate : 0;
 							} else if (segment.transportType === "veřejná doprava") {
 								costs = segment.ticketCosts || 0;
 								unit = "Kč";
@@ -343,21 +366,33 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 			{(formData.accommodations.length > 0 || formData.additionalExpenses.length > 0) && (
 				<Card shadow="sm" padding="md">
 					<Title order={4} mb="md">Ostatní náklady</Title>
-					
+
 					{formData.accommodations.length > 0 && (
 						<Box mb="md">
 							<Group gap="xs" mb="xs">
 								<IconBed size={16} />
 								<Text fw={500}>Nocležné</Text>
 							</Group>
-							{formData.accommodations.map(acc => (
-								<Group key={acc.id} justify="space-between" mb="xs">
-									<Text size="sm">
-										{acc.facility}, {acc.place} - {teamMembers.find(m => m.index === acc.paidByMember)?.name}
-									</Text>
-									<Text fw={500}>{formatCurrency(acc.amount)}</Text>
-								</Group>
-							))}
+							{formData.accommodations.map(acc => {
+								const paidByMember = teamMembers.find(m => m.int_adr === acc.paidByMember);
+								const isCurrentUserExpense = currentUser && acc.paidByMember === currentUser.INT_ADR;
+
+								return (
+									<Box key={acc.id} mb="xs">
+										<Group justify="space-between">
+											<Text size="sm">
+												{acc.facility}, {acc.place} - {paidByMember?.name}
+											</Text>
+											<Text fw={500}>{formatCurrency(acc.amount)}</Text>
+										</Group>
+										{!isCurrentUserExpense && (
+											<Text size="xs" c="dimmed" fs="italic">
+												Započítává se do vyúčtování pro: {paidByMember?.name}
+											</Text>
+										)}
+									</Box>
+								);
+							})}
 						</Box>
 					)}
 
@@ -367,14 +402,26 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 								<IconReceipt size={16} />
 								<Text fw={500}>Vedlejší výdaje</Text>
 							</Group>
-							{formData.additionalExpenses.map(exp => (
-								<Group key={exp.id} justify="space-between" mb="xs">
-									<Text size="sm">
-										{exp.description} - {teamMembers.find(m => m.index === exp.paidByMember)?.name}
-									</Text>
-									<Text fw={500}>{formatCurrency(exp.amount)}</Text>
-								</Group>
-							))}
+							{formData.additionalExpenses.map(exp => {
+								const paidByMember = teamMembers.find(m => m.int_adr === exp.paidByMember);
+								const isCurrentUserExpense = currentUser && exp.paidByMember === currentUser.INT_ADR;
+
+								return (
+									<Box key={exp.id} mb="xs">
+										<Group justify="space-between">
+											<Text size="sm">
+												{exp.description} - {paidByMember?.name}
+											</Text>
+											<Text fw={500}>{formatCurrency(exp.amount)}</Text>
+										</Group>
+										{!isCurrentUserExpense && (
+											<Text size="xs" c="dimmed" fs="italic">
+												Započítává se do vyúčtování pro: {paidByMember?.name}
+											</Text>
+										)}
+									</Box>
+								);
+							})}
 						</Box>
 					)}
 				</Card>
@@ -383,15 +430,19 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 			{/* Celkový souhrn */}
 			<Card shadow="sm" padding="md">
 				<Title order={4} mb="md">Celkový souhrn kompenzací</Title>
-				
+
 				<Stack gap="xs">
 					<Group justify="space-between">
 						<Text>Dopravní náklady</Text>
 						<Text fw={500}>{formatCurrency(compensation.transportCosts)}</Text>
 					</Group>
 					<Group justify="space-between">
-						<Text>Kompenzace za práci</Text>
-						<Text fw={500}>{formatCurrency(compensation.workCompensation)}</Text>
+						<Text>Stravné</Text>
+						<Text fw={500}>{formatCurrency(compensation.mealAllowance)}</Text>
+					</Group>
+					<Group justify="space-between">
+						<Text>Náhrada za práci</Text>
+						<Text fw={500}>{formatCurrency(compensation.workAllowance)}</Text>
 					</Group>
 					<Group justify="space-between">
 						<Text>Nocležné</Text>
@@ -409,77 +460,8 @@ export const CompensationSummary: React.FC<CompensationSummaryProps> = ({
 				</Stack>
 			</Card>
 
-			{/* Rozdělení podle členů */}
-			<Card shadow="sm" padding="md">
-				<Title order={4} mb="md">Rozdělení podle členů skupiny</Title>
-				
-				<Table>
-					<Table.Thead>
-						<Table.Tr>
-							<Table.Th>Člen skupiny</Table.Th>
-							<Table.Th>Doprava</Table.Th>
-							<Table.Th>Práce</Table.Th>
-							<Table.Th>Nocležné</Table.Th>
-							<Table.Th>Vedl. výdaje</Table.Th>
-							<Table.Th>Celkem</Table.Th>
-							<Table.Th>Výplata</Table.Th>
-						</Table.Tr>
-					</Table.Thead>
-					<Table.Tbody>
-						{compensation.breakdown.map(member => {
-							const redirectTarget = member.redirectedTo 
-								? teamMembers.find(m => m.index === member.redirectedTo)?.name 
-								: null;
+			{/* This section was removed as it's already replaced above */}
 
-							return (
-								<Table.Tr key={member.member}>
-									<Table.Td>
-										<Group gap="xs">
-											<Text fw={500}>{member.name}</Text>
-											{teamMembers.find(m => m.index === member.member)?.isLeader && (
-												<Badge size="xs" variant="light">vedoucí</Badge>
-											)}
-										</Group>
-									</Table.Td>
-									<Table.Td>{formatCurrency(member.transportCosts)}</Table.Td>
-									<Table.Td>{formatCurrency(member.workCompensation)}</Table.Td>
-									<Table.Td>{formatCurrency(member.accommodationCosts)}</Table.Td>
-									<Table.Td>{formatCurrency(member.additionalExpenses)}</Table.Td>
-									<Table.Td fw={500}>{formatCurrency(member.total)}</Table.Td>
-									<Table.Td>
-										{redirectTarget ? (
-											<Group gap="xs">
-												<IconArrowRight size={14} />
-												<Text size="sm">{redirectTarget}</Text>
-											</Group>
-										) : (
-											<Text size="sm">Sebe</Text>
-										)}
-									</Table.Td>
-								</Table.Tr>
-							);
-						})}
-					</Table.Tbody>
-				</Table>
-			</Card>
-
-			{/* Finální výplaty */}
-			<Card shadow="sm" padding="md">
-				<Title order={4} mb="md">Finální výplaty</Title>
-				
-				<Stack gap="xs">
-					{finalPayments.map(payment => (
-						<Paper key={payment.memberIndex} withBorder p="sm">
-							<Group justify="space-between">
-								<Text fw={500}>{payment.memberName}</Text>
-								<Text fw={700} size="lg" c="green">
-									{formatCurrency(payment.amount)}
-								</Text>
-							</Group>
-						</Paper>
-					))}
-				</Stack>
-			</Card>
 		</Stack>
 	);
 };

@@ -19,6 +19,7 @@ type AuthContextType = {
 	loggedIn: boolean;
 	intAdr: string | null;
 	user: User | null;
+	isUserLoading: boolean;
 	getIntAdr: () => string | null;
 	login: (username: string, password: string) => Promise<boolean>;
 	logout: () => void;
@@ -34,6 +35,7 @@ type AuthProviderProps = {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
 	const [intAdr, setIntAdr] = useState<string | null>(null);
 	const [user, setUser] = useState<User | null>(null);
+	const [isUserLoading, setIsUserLoading] = useState<boolean>(false);
 
 	// Při prvním načtení zkusit obnovit intAdr z localStorage
 	useEffect(() => {
@@ -57,6 +59,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
 	const refreshUser = async () => {
 		if (!intAdr) return;
+		setIsUserLoading(true);
 		try {
 			const result = await apiRequest('/user', 'GET', { int_adr: intAdr });
 			// Pokud API vrací pole, vezmeme první záznam
@@ -70,6 +73,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		} catch (err: any) {
 			console.error('Failed to fetch user:', err);
 			setUser(null);
+		} finally {
+			setIsUserLoading(false);
 		}
 	};
 
@@ -105,7 +110,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 	const loggedIn = !!intAdr;
 
 	return (
-		<AuthContext.Provider value={{ loggedIn, intAdr, user, getIntAdr, login, logout, refreshUser }}>
+		<AuthContext.Provider value={{ loggedIn, intAdr, user, isUserLoading, getIntAdr, login, logout, refreshUser }}>
 			{children}
 		</AuthContext.Provider>
 	);

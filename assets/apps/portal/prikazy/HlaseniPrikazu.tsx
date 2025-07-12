@@ -35,11 +35,12 @@ import {useAuth} from "../auth/AuthContext";
 import {BreadcrumbsNav} from "../shared/BreadcrumbsNav";
 import RequireLogin from "../auth/RequireLogin";
 import {PrikazHead} from "./components/PrikazHead";
-import {HlaseniFormData} from "./types/HlaseniTypes";
+import {HlaseniFormData, PriceList} from "./types/HlaseniTypes";
 import {PartAForm} from "./components/PartAForm";
 import {PartBForm} from "./components/PartBForm";
 import {CompensationSummary} from "./components/CompensationSummary";
-import {FileUploadZone} from "./components/FileUploadZone";
+import {SimpleFileUpload} from "./components/SimpleFileUpload";
+import {parsePriceListFromAPI, calculateCompensation} from "./utils/compensationCalculator";
 
 const getBreadcrumbs = (id: string | undefined, head: any) => [
 	{title: "Nástěnka", href: "/nastenka"},
@@ -49,7 +50,7 @@ const getBreadcrumbs = (id: string | undefined, head: any) => [
 
 const HlaseniPrikazu = () => {
 	const {id} = useParams();
-	const {getIntAdr, user} = useAuth();
+	const {getIntAdr, user, isUserLoading} = useAuth();
 	const intAdr = getIntAdr();
 	const location = useLocation();
 	const navigate = useNavigate();
@@ -98,7 +99,7 @@ const HlaseniPrikazu = () => {
 		paymentRedirects: {}
 	});
 
-	const [priceList, setPriceList] = useState<any>(null);
+	const [priceList, setPriceList] = useState<PriceList | null>(null);
 
 	// Načítání dat příkazu pouze pokud nejsou předána přes location
 	useEffect(() => {
@@ -186,7 +187,6 @@ const HlaseniPrikazu = () => {
 			})
 			.catch(() => {
 				// Report ještě neexistuje, to je v pořádku
-				console.log('Report does not exist yet');
 			})
 			.finally(() => {
 				setReportLoaded(true);
@@ -200,7 +200,9 @@ const HlaseniPrikazu = () => {
 		const dateStr = formData.executionDate.toISOString().split('T')[0];
 		apiRequest("/ceniky", "GET", {date: dateStr})
 			.then(result => {
-				setPriceList(result);
+				// Parsování API dat do standardizované struktury
+				const parsedPriceList = parsePriceListFromAPI(result);
+				setPriceList(parsedPriceList);
 			})
 			.catch(() => {
 				notifications.show({
@@ -254,14 +256,19 @@ const HlaseniPrikazu = () => {
 			// Výpočet náhrad pouze při finálním odeslání
 			let calculation: any = null;
 			if (state === 'send' && priceList) {
-				// TODO: Implementovat výpočet náhrad
+				// Výpočet kompenzací pomocí nového kalkulátoru
+				// Jízdné se počítá pouze pokud je aktuální uživatel nastaven jako primární řidič
+				const isDriver = user && formData.primaryDriver === user.INT_ADR;
+				const compensationResult = calculateCompensation(
+					formData,
+					priceList,
+					isDriver,
+					formData.higherKmRate,
+					user.INT_ADR
+				);
+
 				calculation = {
-					transportCosts: 0,
-					workCompensation: 0,
-					accommodationCosts: 0,
-					additionalExpenses: 0,
-					total: 0,
-					breakdown: [],
+					...compensationResult,
 					paymentRedirects: formData.paymentRedirects
 				};
 			}
@@ -309,7 +316,7 @@ const HlaseniPrikazu = () => {
 		} else {
 			newSearchParams.set('step', step.toString());
 		}
-		setSearchParams(newSearchParams, { replace: true });
+		setSearchParams(newSearchParams, {replace: true});
 	};
 
 	const canCompletePartA = useMemo(() => {
@@ -336,7 +343,7 @@ const HlaseniPrikazu = () => {
 	useEffect(() => {
 		const partACompleted = canCompletePartA;
 		if (partACompleted !== formData.partACompleted) {
-			updateFormData({ partACompleted });
+			updateFormData({partACompleted});
 		}
 	}, [canCompletePartA, formData.partACompleted]);
 
@@ -346,18 +353,28 @@ const HlaseniPrikazu = () => {
 			// Pro obnovu vyžadujeme TIM reporty
 			const partBCompleted = Object.keys(formData.timReports).length > 0;
 			if (partBCompleted !== formData.partBCompleted) {
-				updateFormData({ partBCompleted });
+				updateFormData({partBCompleted});
 			}
 		} else {
 			// Pro ostatní druhy vyžadujeme vyplněný komentář
 			const partBCompleted = formData.routeComment.trim().length > 0;
 			if (partBCompleted !== formData.partBCompleted) {
-				updateFormData({ partBCompleted });
+				updateFormData({partBCompleted});
 			}
 		}
 	}, [formData.timReports, formData.routeComment, formData.partBCompleted, head?.Druh_ZP]);
 
-	if (loading) {
+	// Nastavení vyšší sazby podle hlavičky příkazu
+	useEffect(() => {
+		if (head?.ZvysenaSazba) {
+			const shouldUseHigherRate = head.ZvysenaSazba === "1";
+			if (shouldUseHigherRate !== formData.higherKmRate) {
+				updateFormData({ higherKmRate: shouldUseHigherRate });
+			}
+		}
+	}, [head?.ZvysenaSazba, formData.higherKmRate]);
+
+	if (loading || isUserLoading || !user) {
 		return (
 			<RequireLogin>
 				<Container size="lg" px={0} my="md">
@@ -425,8 +442,9 @@ const HlaseniPrikazu = () => {
 									updateFormData={updateFormData}
 									priceList={priceList}
 									head={head}
-									canEdit={true}
+									canEdit={formData.status !== 'submitted'}
 									canEditOthers={canEditOthers}
+									currentUser={user}
 								/>
 
 								{!canCompletePartA && (
@@ -461,6 +479,8 @@ const HlaseniPrikazu = () => {
 											head={head}
 											totalLength={totalLength}
 											compact={true}
+											currentUser={user}
+											isLeader={isLeader}
 										/>
 									</Card>
 								</Box>
@@ -506,7 +526,8 @@ const HlaseniPrikazu = () => {
 									<Box>
 										<Text fw={500} mb="xs">Hlášení o provedené činnosti</Text>
 										<Text size="sm" c="dimmed" mb="sm">
-											Popište provedenou značkařskou činnost, stav značení, případné problémy a návrhy na zlepšení.
+											Popište provedenou značkařskou činnost, stav značení, případné problémy a
+											návrhy na zlepšení.
 										</Text>
 										<Textarea
 											placeholder="Popište provedenou značkařskou činnost..."
@@ -520,9 +541,11 @@ const HlaseniPrikazu = () => {
 									<Box>
 										<Text fw={500} mb="xs">Fotografické přílohy</Text>
 										<Text size="sm" c="dimmed" mb="sm">
-											Přiložte fotografie dokumentující provedenou činnost, stav značení, problémová místa apod.
+											Přiložte fotografie dokumentující provedenou činnost, stav značení,
+											problémová místa apod.
 										</Text>
-										<FileUploadZone
+										<SimpleFileUpload
+											id="hlaseni-route-attachments"
 											files={formData.routeAttachments || []}
 											onFilesChange={(files) => updateFormData({routeAttachments: files})}
 											maxFiles={20}
@@ -638,7 +661,8 @@ const HlaseniPrikazu = () => {
 										) : (
 											<Group justify="space-between">
 												<Text size="sm" c="dimmed">Hlášení vyplněno:</Text>
-												<Text size="sm">{formData.routeComment.trim().length > 0 ? "Ano" : "Ne"}</Text>
+												<Text
+													size="sm">{formData.routeComment.trim().length > 0 ? "Ano" : "Ne"}</Text>
 											</Group>
 										)}
 										<Group justify="space-between">
@@ -681,6 +705,8 @@ const HlaseniPrikazu = () => {
 								head={head}
 								totalLength={totalLength}
 								compact={false}
+								currentUser={user}
+								isLeader={isLeader}
 							/>
 						</Card>
 

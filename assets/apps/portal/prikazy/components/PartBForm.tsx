@@ -35,7 +35,7 @@ import {
 	IconMapPin, iconsList
 } from "@tabler/icons-react";
 import {HlaseniFormData, TimReport, TimItemStatus} from "../types/HlaseniTypes";
-import {FileUploadZone} from "./FileUploadZone";
+import {SimpleFileUpload} from "./SimpleFileUpload";
 import {formatKm} from "../../shared/formatting";
 import {YearPickerInput} from "@mantine/dates";
 
@@ -60,6 +60,16 @@ const arrowOrientationOptions = [
 	{value: "L", label: "Levá (L)"},
 	{value: "P", label: "Pravá (P)"}
 ];
+
+// Helper funkce pro generování konzistentních identifikátorů
+const getItemIdentifier = (item: any): string => {
+	// Preferujeme ID_PREDMETY z DB, fallback na kombinaci EvCi_TIM + Predmet_Index
+	return item.ID_PREDMETY?.toString() || `${item.EvCi_TIM}_${item.Predmet_Index}`;
+};
+
+const getLegacyItemIdentifier = (item: any): string => {
+	return `${item.EvCi_TIM}_${item.Predmet_Index}`;
+};
 
 // Seskupení předmětů podle TIM
 const groupItemsByTIM = (predmety: any[]) => {
@@ -109,7 +119,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 		updateFormData({timReports: newTimReports});
 	};
 
-	const updateItemStatus = (timId: string, itemId: string, status: Partial<TimItemStatus>) => {
+	const updateItemStatus = (timId: string, item: any, status: Partial<TimItemStatus>) => {
 		const timReport = formData.timReports[timId] || {
 			timId,
 			structuralComment: "",
@@ -118,17 +128,29 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 			photos: []
 		};
 
-		const existingStatusIndex = timReport.itemStatuses.findIndex(s => s.itemId === itemId);
+		const primaryId = getItemIdentifier(item);
+		const legacyId = getLegacyItemIdentifier(item);
+
+		const existingStatusIndex = timReport.itemStatuses.findIndex(s => 
+			s.itemId === primaryId || s.itemId === legacyId || s.legacyItemId === legacyId
+		);
 		const newItemStatuses = [...timReport.itemStatuses];
 
 		if (existingStatusIndex >= 0) {
 			newItemStatuses[existingStatusIndex] = {
 				...newItemStatuses[existingStatusIndex],
-				...status
+				...status,
+				itemId: primaryId, // Aktualizujeme na nový identifikátor
+				legacyItemId: legacyId,
+				evCiTim: item.EvCi_TIM,
+				predmetIndex: item.Predmet_Index
 			};
 		} else {
 			newItemStatuses.push({
-				itemId,
+				itemId: primaryId,
+				legacyItemId: legacyId,
+				evCiTim: item.EvCi_TIM,
+				predmetIndex: item.Predmet_Index,
 				status: 1,
 				...status
 			});
@@ -140,8 +162,16 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 		});
 	};
 
-	const getItemStatus = (timId: string, itemId: string): TimItemStatus | undefined => {
-		return formData.timReports[timId]?.itemStatuses.find(s => s.itemId === itemId);
+	const getItemStatus = (timId: string, item: any): TimItemStatus | undefined => {
+		const timReport = formData.timReports[timId];
+		if (!timReport) return undefined;
+
+		const primaryId = getItemIdentifier(item);
+		const legacyId = getLegacyItemIdentifier(item);
+
+		return timReport.itemStatuses.find(s => 
+			s.itemId === primaryId || s.itemId === legacyId || s.legacyItemId === legacyId
+		);
 	};
 
 	const getTimCompletionStatus = (timId: string) => {
@@ -156,8 +186,8 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 			if (status.status === 3 || status.status === 4) return true; // Nevyhovující/chybí nevyžadují další údaje
 
 			// Pro stavy 1-2 jsou potřeba další údaje
-			const hasYear = status.yearOfProduction && status.yearOfProduction > 0;
-			const hasOrientation = !status.itemId.includes('smerovka') || status.arrowOrientation;
+			const hasYear = status.yearOfProduction && status.yearOfProduction instanceof Date;
+			const hasOrientation = !status.itemId.includes('směrovka') || status.arrowOrientation;
 
 			return hasYear && hasOrientation;
 		}).length;
@@ -264,7 +294,8 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 												/>
 												<Box mt="sm">
 													<Text size="sm" mb="xs">Fotografické přílohy k nosnému prvku</Text>
-													<FileUploadZone
+													<SimpleFileUpload
+														id={`structural-${timGroup.EvCi_TIM}`}
 														files={timReport?.structuralAttachments || []}
 														onFilesChange={(files) => updateTimReport(timGroup.EvCi_TIM, {
 															...timReport,
@@ -346,12 +377,12 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 
 													{/* Řádky */}
 													{timGroup.items.map((item: any, index: number) => {
-														const itemStatus = getItemStatus(timGroup.EvCi_TIM, item.Predmet_Index);
+														const itemStatus = getItemStatus(timGroup.EvCi_TIM, item);
 														const isArrow = item.Druh_Predmetu_Naz?.toLowerCase().includes('směrovka');
 														const needsAdditionalData = itemStatus?.status === 1 || itemStatus?.status === 2;
 
 														return (
-															<Box key={item.Predmet_Index}>
+															<Box key={getItemIdentifier(item)}>
 																<Flex
 																	gap="md"
 																	py="md"
@@ -370,6 +401,11 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																				<Text size="sm" fw={700}>
 																					{item.EvCi_TIM}{item.Predmet_Index}
 																				</Text>
+																				{item.ID_PREDMETY && (
+																					<Text size="xs" c="dimmed" fw={400}>
+																						(ID: {item.ID_PREDMETY})
+																					</Text>
+																				)}
 																				<Text size="sm" fw={500}>
 																					{item.Radek1}
 																				</Text>
@@ -410,7 +446,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																			value={itemStatus?.status?.toString() || ""}
 																			onChange={(value) => value && updateItemStatus(
 																				timGroup.EvCi_TIM,
-																				item.Predmet_Index,
+																				item,
 																				{status: parseInt(value) as any}
 																			)}
 																			size="sm"
@@ -431,7 +467,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																				value={itemStatus?.yearOfProduction || undefined}
 																				onChange={(value) => updateItemStatus(
 																					timGroup.EvCi_TIM,
-																					item.Predmet_Index,
+																					item,
 																					{yearOfProduction: value || undefined}
 																				)}
 																				minDate={new Date(1990, 1)}
@@ -459,7 +495,7 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 																				value={itemStatus?.arrowOrientation || ""}
 																				onChange={(value) => updateItemStatus(
 																					timGroup.EvCi_TIM,
-																					item.Predmet_Index,
+																					item,
 																					{arrowOrientation: value as "L" | "P"}
 																				)}
 																				size="sm"
@@ -506,7 +542,8 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 												<Text fw={500} size="sm" mb="xs">
 													Fotografie TIMu
 												</Text>
-												<FileUploadZone
+												<SimpleFileUpload
+													id={`photos-${timGroup.EvCi_TIM}`}
 													files={timReport?.photos || []}
 													onFilesChange={(files) => updateTimReport(timGroup.EvCi_TIM, {
 														...timReport,
@@ -549,7 +586,8 @@ export const PartBForm: React.FC<PartBFormProps> = ({
 					<Text fw={500} size="sm" mb="xs">
 						Fotografické přílohy k úseku
 					</Text>
-					<FileUploadZone
+					<SimpleFileUpload
+						id="route-attachments"
 						files={formData.routeAttachments || []}
 						onFilesChange={(files) => updateFormData({routeAttachments: files})}
 						maxFiles={10}

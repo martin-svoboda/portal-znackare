@@ -1,4 +1,4 @@
-import React, {useState, useRef, useCallback, useEffect} from "react";
+import React, {useState, useRef, useCallback, useEffect, useMemo} from "react";
 import {
 	Box,
 	Group,
@@ -44,9 +44,12 @@ interface FileUploadZoneProps {
 	accept?: string;
 	disabled?: boolean;
 	enableCamera?: boolean; // nová možnost
+	id?: string; // unique identifier pro izolaci komponent
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+const GLOBAL_RENDER_TRACKER = new Map<string, boolean>();
 
 export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 																  files,
@@ -55,9 +58,42 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 																  maxSize = 10,
 																  accept = "image/jpeg,image/png,image/heic,application/pdf",
 																  disabled = false,
-																  enableCamera = true
+																  enableCamera = true,
+																  id = 'default'
 															  }) => {
 	const {user} = useAuth();
+	
+	const [renderKey, setRenderKey] = useState(0);
+	const componentInstanceId = useMemo(() => `${id}-${Date.now()}-${Math.random().toString(36).substring(2)}`, [id]);
+	
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setRenderKey(prev => prev + 1);
+		}, Math.random() * 50);
+		
+		return () => clearTimeout(timer);
+	}, [files.length]);
+	
+	const filePreviewData = useMemo(() => {
+		return files.filter(file => {
+			if (!file || typeof file !== 'object') {
+				return false;
+			}
+			return file.id && file.fileName;
+		}).map((file, index) => {
+			const timestamp1 = Date.now();
+			const timestamp2 = performance.now();
+			const random = Math.random().toString(36).substring(2, 8);
+			const compositeKey = `isolated-${componentInstanceId}-file-${String(file.id)}-idx-${index}-rk-${renderKey}-ts1-${timestamp1}-ts2-${Math.round(timestamp2)}-rnd-${random}`;
+			
+			return {
+				key: compositeKey,
+				file,
+				index
+			};
+		});
+	}, [files, componentInstanceId, renderKey]);
+	
 	const [uploading, setUploading] = useState(false);
 	const [previewFile, setPreviewFile] = useState<FileAttachment | null>(null);
 	const [rotationAngle, setRotationAngle] = useState(0);
@@ -90,8 +126,6 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 	};
 
 	const convertHeicToJpeg = async (file: File): Promise<File> => {
-		// V produkčním prostředí by zde byla implementace konverze HEIC
-		// Pro demo účely vrátíme původní soubor
 		return file;
 	};
 
@@ -102,7 +136,6 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 			const img = new Image();
 
 			img.onload = () => {
-				// Vypočítání nových rozměrů se zachováním poměru stran
 				let {width, height} = img;
 				if (width > maxWidth) {
 					height = (height * maxWidth) / width;
@@ -112,7 +145,6 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 				canvas.width = width;
 				canvas.height = height;
 
-				// Kreslení a komprese
 				ctx?.drawImage(img, 0, 0, width, height);
 				canvas.toBlob((blob) => {
 					if (blob) {
@@ -154,17 +186,37 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 		const url = URL.createObjectURL(processedFile);
 		const thumbnailUrl = isImage(processedFile.name) ? url : undefined;
 
-		return {
-			id: crypto.randomUUID(),
-			fileName: processedFile.name,
-			fileSize: processedFile.size,
-			fileType: processedFile.type,
+		// Generujeme unikátní ID které určitě nekonfliktuje s jinými komponenty
+		const timestamp = Date.now();
+		const random = Math.random().toString(36).substring(2);
+		const uniqueId = `file_${id}_${timestamp}_${random}`;
+
+		const fileAttachment: FileAttachment = {
+			id: uniqueId,
+			fileName: processedFile.name || `file-${timestamp}`,
+			fileSize: processedFile.size || 0,
+			fileType: processedFile.type || 'application/octet-stream',
 			uploadedAt: new Date(),
 			uploadedBy: user?.name || 'unknown',
 			url,
 			thumbnailUrl,
 			rotation: 0
 		};
+
+		// Ujistíme se, že objekt je JSON serializovatelný
+		try {
+			JSON.stringify(fileAttachment);
+		} catch (error) {
+			console.error('FileAttachment object is not serializable:', error, fileAttachment);
+			throw new Error('Failed to create serializable file attachment object');
+		}
+
+		// Validace, že všechny povinné vlastnosti jsou přítomny
+		if (!fileAttachment.id || !fileAttachment.fileName) {
+			throw new Error('Failed to create valid file attachment object');
+		}
+
+		return fileAttachment;
 	};
 
 	// Camera functions
@@ -184,8 +236,6 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 			try {
 				mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
 			} catch (error) {
-				// Pokud se nepodaří s konkrétním facing mode, zkusíme bez něj
-				console.warn('Fallback na základní video constraints');
 				constraints = {
 					video: {
 						width: {ideal: 1920},
@@ -198,17 +248,13 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 			setStream(mediaStream);
 			setCameraOpen(true);
 
-			// Počkáme na další render cyklus, aby se video element vytvořil
 			setTimeout(() => {
 				if (videoRef.current) {
 					videoRef.current.srcObject = mediaStream;
-					videoRef.current.play().catch(err => {
-						console.error('Chyba při spuštění videa:', err);
-					});
+					videoRef.current.play().catch(err => {});
 				}
 			}, 100);
 		} catch (error) {
-			console.error('Chyba při spouštění kamery:', error);
 			setCameraError('Nepodařilo se spustit kameru. Zkontrolujte oprávnění pro kameru v nastavení prohlížeče.');
 		}
 	};
@@ -246,8 +292,6 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 					}
 				});
 			} catch (error) {
-				// Pokud se nepodaří přepnout, zůstaneme u původního
-				console.warn('Nepodařilo se přepnout kameru, zachováváme původní');
 				setCameraError('Zařízení nemá druhou kameru');
 				return;
 			}
@@ -256,12 +300,9 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 
 			if (videoRef.current) {
 				videoRef.current.srcObject = mediaStream;
-				videoRef.current.play().catch(err => {
-					console.error('Chyba při spuštění videa:', err);
-				});
+				videoRef.current.play().catch(err => {});
 			}
 		} catch (error) {
-			console.error('Chyba při přepínání kamery:', error);
 			setCameraError('Nepodařilo se přepnout kameru.');
 		}
 	};
@@ -321,16 +362,22 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 			setUploading(true);
 			setCameraError(null); // Reset error state
 			const uploadedFile = await uploadFile(file);
-			onFilesChange([...files, uploadedFile]);
+			
+			// Ujistíme se, že uploadedFile je validní objekt s požadovanými vlastnostmi
+			if (uploadedFile && uploadedFile.id && uploadedFile.fileName) {
+				onFilesChange([...files, uploadedFile]);
 
-			notifications.show({
-				title: "Foto uloženo",
-				message: `Foto ${filename} bylo úspěšně přidáno`,
-				color: "green"
-			});
+				notifications.show({
+					title: "Foto uloženo",
+					message: `Foto ${filename} bylo úspěšně přidáno`,
+					color: "green"
+				});
 
-			// Zavření kamery po potvrzení
-			stopCamera();
+				// Zavření kamery po potvrzení
+				stopCamera();
+			} else {
+				throw new Error('Invalid file object returned from upload');
+			}
 		} catch (error) {
 			console.error('Chyba při ukládání foto:', error);
 			notifications.show({
@@ -351,8 +398,8 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 		setPhotoBlob(null);
 	};
 
-	const handleDrop = useCallback(async (acceptedFiles: FileWithPath[]) => {
-		if (disabled) return;
+	const handleDrop = async (acceptedFiles: FileWithPath[]) => {
+		if (disabled || uploading) return; // Zabráníme současným uploadům
 
 		setUploading(true);
 		try {
@@ -381,7 +428,9 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 
 				try {
 					const uploadedFile = await uploadFile(file);
-					newFiles.push(uploadedFile);
+					if (uploadedFile && uploadedFile.id && uploadedFile.fileName) {
+						newFiles.push(uploadedFile);
+					}
 				} catch (error) {
 					notifications.show({
 						title: "Chyba uploadu",
@@ -391,13 +440,28 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 				}
 			}
 
-			onFilesChange([...files, ...newFiles]);
+			if (newFiles.length > 0) {
+				const validFiles = newFiles.filter(file => file && file.id && file.fileName);
+				onFilesChange([...files, ...validFiles]);
+			}
+		} catch (error) {
 		} finally {
 			setUploading(false);
 		}
-	}, [files, onFilesChange, maxFiles, maxSize, disabled, user]);
+	};
 
 	const removeFile = (fileId: string) => {
+		// Najdeme soubor který se odstraňuje a vyčistíme jeho URL objekty
+		const fileToRemove = files.find(f => f.id === fileId);
+		if (fileToRemove) {
+			if (fileToRemove.url) {
+				URL.revokeObjectURL(fileToRemove.url);
+			}
+			if (fileToRemove.thumbnailUrl) {
+				URL.revokeObjectURL(fileToRemove.thumbnailUrl);
+			}
+		}
+		
 		const updatedFiles = files.filter(f => f.id !== fileId);
 		onFilesChange(updatedFiles);
 	};
@@ -416,16 +480,26 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 		setRotationAngle(file.rotation || 0);
 	};
 
-	const FilePreview: React.FC<{ file: FileAttachment }> = ({file}) => {
-		if (isImage(file.fileName)) {
+	const FilePreview: React.FC<{ file: FileAttachment }> = React.memo(({file}) => {
+		if (!file || !file.id || !file.fileName) {
+			return null;
+		}
+
+		const safeId = String(file.id || '');
+		const safeFileName = String(file.fileName || 'Neznámý soubor');
+		const safeFileSize = Number(file.fileSize) || 0;
+		const safeThumbnailUrl = String(file.thumbnailUrl || '');
+		const safeRotation = Number(file.rotation) || 0;
+
+		if (isImage(safeFileName)) {
 			return (
 				<Card withBorder p="xs" style={{position: 'relative'}}>
 					<Image
-						src={file.thumbnailUrl}
-						alt={file.fileName}
+						src={safeThumbnailUrl}
+						alt={safeFileName}
 						height={80}
 						style={{
-							transform: `rotate(${file.rotation || 0}deg)`,
+							transform: `rotate(${safeRotation}deg)`,
 							transition: 'transform 0.3s ease'
 						}}
 					/>
@@ -433,7 +507,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 						<ActionIcon
 							size="xs"
 							variant="light"
-							onClick={() => rotateImage(file.id, -90)}
+							onClick={() => rotateImage(safeId, -90)}
 							disabled={disabled}
 						>
 							<IconRotate2 size={12}/>
@@ -441,7 +515,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 						<ActionIcon
 							size="xs"
 							variant="light"
-							onClick={() => rotateImage(file.id, 90)}
+							onClick={() => rotateImage(safeId, 90)}
 							disabled={disabled}
 						>
 							<IconRotateClockwise size={12}/>
@@ -457,7 +531,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 							size="xs"
 							color="red"
 							variant="light"
-							onClick={() => removeFile(file.id)}
+							onClick={() => removeFile(safeId)}
 							disabled={disabled}
 						>
 							<IconTrash size={12}/>
@@ -473,10 +547,10 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 					<IconFile size={20}/>
 					<Stack gap={0}>
 						<Text size="xs" truncate maw={120}>
-							{file.fileName}
+							{safeFileName}
 						</Text>
 						<Text size="xs" c="dimmed">
-							{(file.fileSize / 1024).toFixed(1)} KB
+							{(safeFileSize / 1024).toFixed(1)} KB
 						</Text>
 					</Stack>
 				</Group>
@@ -492,7 +566,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 						size="xs"
 						color="red"
 						variant="light"
-						onClick={() => removeFile(file.id)}
+						onClick={() => removeFile(safeId)}
 						disabled={disabled}
 					>
 						<IconTrash size={12}/>
@@ -500,29 +574,104 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 				</Group>
 			</Card>
 		);
+	});
+
+	const SafeFilePreview: React.FC<{ file: FileAttachment }> = ({ file }) => {
+		try {
+			if (typeof file !== 'object' || file === null) {
+				return (
+					<Card withBorder p="xs">
+						<Text size="xs" c="red">
+							Neplatný objekt souboru
+						</Text>
+					</Card>
+				);
+			}
+
+			const safeFile = {
+				id: String(file.id || ''),
+				fileName: String(file.fileName || ''),
+				fileSize: Number(file.fileSize) || 0,
+				fileType: String(file.fileType || ''),
+				uploadedAt: file.uploadedAt instanceof Date ? file.uploadedAt : new Date(),
+				uploadedBy: String(file.uploadedBy || ''),
+				url: String(file.url || ''),
+				thumbnailUrl: file.thumbnailUrl ? String(file.thumbnailUrl) : undefined,
+				rotation: Number(file.rotation) || 0
+			};
+
+			for (const [key, value] of Object.entries(safeFile)) {
+				if (value !== null && value !== undefined && typeof value === 'object' && !(value instanceof Date)) {
+					return (
+						<Card withBorder p="xs">
+							<Text size="xs" c="red">
+								Chyba: Neplatná data souboru ({key})
+							</Text>
+						</Card>
+					);
+				}
+			}
+
+			try {
+				JSON.stringify(safeFile);
+			} catch (jsonError) {
+				return (
+					<Card withBorder p="xs">
+						<Text size="xs" c="red">
+							Chyba: Neserializovatelný objekt
+						</Text>
+					</Card>
+				);
+			}
+
+			try {
+				return <FilePreview file={safeFile} />;
+			} catch (renderError) {
+				return (
+					<Card withBorder p="xs">
+						<Text size="xs" c="red">
+							Chyba v FilePreview komponentě
+						</Text>
+					</Card>
+				);
+			}
+		} catch (error) {
+			return (
+				<Card withBorder p="xs">
+					<Text size="xs" c="red">
+						Chyba při zobrazení souboru
+					</Text>
+				</Card>
+			);
+		}
 	};
 
+	const containerKey = `fileupload-container-${componentInstanceId}-${renderKey}`;
+	
 	return (
-		<Box>
-			{!disabled && files.length < maxFiles && (
-				<>
-					<Text size="sm" c="dimmed" inline mb="sm">
-						Maximálně {maxFiles} souborů, každý do {maxSize}MB
-					</Text>
-					<Group gap="md">
-						{/* Dropzone pro nahrávání souborů */}
-						<Dropzone
-							flex="1"
-							onDrop={handleDrop}
-							accept={accept.split(',').reduce((acc, type) => {
-								acc[type.trim()] = [];
-								return acc;
-							}, {} as Record<string, string[]>)}
-							maxSize={maxSize * 1024 * 1024}
-							loading={uploading}
-							disabled={disabled}
-							className="dropzone"
-						>
+		<React.Fragment key={containerKey}>
+			<Box data-component-id={componentInstanceId} key={`fileupload-${componentInstanceId}-${renderKey}`}>
+				{!disabled && files.length < maxFiles && (
+					<React.Fragment key={`upload-section-${id}`}>
+						<Text size="sm" c="dimmed" inline mb="sm">
+							Maximálně {maxFiles} souborů, každý do {maxSize}MB
+						</Text>
+						<Group gap="md">
+							{/* Dropzone pro nahrávání souborů */}
+							<Dropzone
+								flex="1"
+								onDrop={handleDrop}
+								accept={accept.split(',').reduce((acc, type) => {
+									acc[type.trim()] = [];
+									return acc;
+								}, {} as Record<string, string[]>)}
+								maxSize={maxSize * 1024 * 1024}
+								loading={uploading}
+								disabled={disabled}
+								className="dropzone"
+								data-component-id={componentInstanceId}
+								key={`dropzone-${componentInstanceId}-${files.length}-${renderKey}`}
+							>
 							<Group justify="center" p="sm" gap="lg" mih={150} style={{pointerEvents: 'none'}}>
 								<Dropzone.Accept>
 									<IconUpload size={50} color="var(--mantine-color-blue-6)"/>
@@ -562,30 +711,33 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 							</Button>
 						)}
 					</Group>
-				</>
+				</React.Fragment>
 			)}
 
 			{uploading && (
-				<Progress value={100} animated mt="md"/>
+				<Progress value={100} animated mt="md" key={`progress-${componentInstanceId}-${renderKey}`}/>
 			)}
 
 			{files.length > 0 && (
-				<Box mt="md">
+				<Box mt="md" key={`filelist-${componentInstanceId}-${renderKey}`} data-component-id={componentInstanceId}>
 					<Text size="sm" fw={500} mb="xs">
 						Nahrané soubory ({files.length}/{maxFiles})
 					</Text>
-					<Grid gutter="xs">
-						{files.map((file) => (
-							<Grid.Col key={file.id} span={3}>
-								<FilePreview file={file}/>
-							</Grid.Col>
+					<Grid gutter="xs" key={`grid-${componentInstanceId}-${renderKey}`} data-component-id={componentInstanceId}>
+						{filePreviewData.map(({key, file, index}) => (
+							<React.Fragment key={`fragment-${key}`}>
+								<Grid.Col key={key} span={3} data-component-id={componentInstanceId}>
+									<SafeFilePreview file={file} key={`preview-${key}`}/>
+								</Grid.Col>
+							</React.Fragment>
 						))}
 					</Grid>
 				</Box>
 			)}
-
-			{/* Camera Modal */}
-			<Modal
+		</Box>
+		
+		{/* Camera Modal */}
+		<Modal
 				opened={cameraOpen}
 				onClose={stopCamera}
 				withCloseButton={false}
@@ -767,6 +919,7 @@ export const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 					</Stack>
 				)}
 			</Modal>
-		</Box>
+		
+		</React.Fragment>
 	);
 };

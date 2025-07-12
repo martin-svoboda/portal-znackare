@@ -34,7 +34,7 @@ export interface Accommodation {
 	facility: string;
 	date: Date;
 	amount: number;
-	paidByMember: number; // Index člena skupiny (1-3)
+	paidByMember: string; // int_adr uživatele, který uhradil
 	attachments: FileAttachment[];
 }
 
@@ -43,12 +43,15 @@ export interface AdditionalExpense {
 	description: string;
 	date: Date;
 	amount: number;
-	paidByMember: number; // Index člena skupiny (1-3)
+	paidByMember: string; // int_adr uživatele, který uhradil
 	attachments: FileAttachment[];
 }
 
 export interface TimItemStatus {
-	itemId: string;
+	itemId: string; // Primární identifikátor - ID_PREDMETY z DB
+	legacyItemId?: string; // Záložní identifikátor - EvCi_TIM + Predmet_Index pro kompatibilitu
+	evCiTim?: string; // Evidenční číslo TIM pro reference
+	predmetIndex?: string; // Index předmětu pro reference
 	status: 1 | 2 | 3 | 4; // 1-Nová, 2-Zachovalá, 3-Nevyhovující, 4-Zcela chybí
 	yearOfProduction?: DateValue;
 	arrowOrientation?: "L" | "P"; // Pro směrovky
@@ -93,7 +96,7 @@ export interface HlaseniFormData {
 	partBCompleted: boolean;
 
 	// Přesměrování výplat
-	paymentRedirects: Record<number, number>; // Key = člen který posílá, Value = člen který dostává
+	paymentRedirects: Record<number, number>; // Key = int_adr uživatele který posílá, Value = int_adr uživatele který dostává
 
 	// Metadata
 	createdAt?: Date;
@@ -111,26 +114,30 @@ export interface PriceListItem {
 	validTo?: Date;
 }
 
+export interface TariffBand {
+	dobaOd: number; // hodiny od (včetně)
+	dobaDo: number; // hodiny do (méně než)
+	stravne: number; // náhrada za stravné
+	nahrada: number; // další náhrada
+}
+
 export interface PriceList {
-	transport: PriceListItem[];
-	work: PriceListItem[];
-	other: PriceListItem[];
+	jizdne: number; // základní jízdné za km pro AUV/AUV-Z
+	jizdneZvysene: number; // zvýšené jízdné za km
+	tariffs: TariffBand[]; // tarify podle odpracovaných hodin
+	transport?: PriceListItem[]; // legacy - zachování kompatibility
+	work?: PriceListItem[]; // legacy - zachování kompatibility
+	other?: PriceListItem[]; // legacy - zachování kompatibility
 }
 
 export interface CompensationCalculation {
-	transportCosts: number;
-	workCompensation: number;
-	accommodationCosts: number;
-	additionalExpenses: number;
+	transportCosts: number; // jízdné
+	mealAllowance: number; // stravné
+	workAllowance: number; // náhrada za práci
+	accommodationCosts: number; // ubytování
+	additionalExpenses: number; // vedlejší výdaje
 	total: number;
-	breakdown: {
-		member: number;
-		name: string;
-		transportCosts: number;
-		workCompensation: number;
-		accommodationCosts: number;
-		additionalExpenses: number;
-		total: number;
-		redirectedTo?: number;
-	}[];
+	workHours: number; // celkové hodiny práce
+	appliedTariff?: TariffBand; // použitý tarif
+	isDriver: boolean; // je řidič (dostává jízdné)
 }
